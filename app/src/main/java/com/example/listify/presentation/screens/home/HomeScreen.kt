@@ -5,260 +5,427 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.rounded.AccountTree
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddCard
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.listify.domain.model.Category
-import com.example.listify.domain.utils.formatTimestamp
+import com.example.listify.domain.model.Cluster
+import com.example.listify.domain.model.ClusterWithCategories
+import com.example.listify.domain.model.HomeScreenData
+import com.example.listify.presentation.screens.utils.PointedDivider
 
-private lateinit var viewModel: HomeViewModel
+// ── Sheet state machine ────────────────────────────────────────────────────
+
+sealed class AddSheetState {
+    object Hidden : AddSheetState()
+    object Choosing : AddSheetState()
+    object AddingGeneral : AddSheetState()
+    object AddingCluster : AddSheetState()
+    data class AddingToCluster(val clusterId: Long, val clusterName: String) : AddSheetState()
+}
+
+// ── Entry point ────────────────────────────────────────────────────────────
 
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel = hiltViewModel(),
     onClick: (Long) -> Unit,
 ) {
-    viewModel = homeViewModel
-    val categories by viewModel.categories.collectAsState()
-    val error by viewModel.error.collectAsState()
+    val homeScreenData by homeViewModel.homeScreenData.collectAsState()
 
     HomeScreenContent(
-        list = categories,
-        onClick = onClick
+        data = homeScreenData,
+        onClick = onClick,
+        onAddCategory = homeViewModel::addCategory,
+        onAddCluster = homeViewModel::addCluster
     )
 }
 
+// ── Root content ───────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenContent(
-    list: List<Category>,
+    data: HomeScreenData,
     onClick: (Long) -> Unit,
+    onAddCategory: (String, Long?) -> Unit,
+    onAddCluster: (String, String) -> Unit,
 ) {
-    var isEditing by remember { mutableStateOf(false) }
+    var sheetState by remember { mutableStateOf<AddSheetState>(AddSheetState.Hidden) }
     var categoryTitle by remember { mutableStateOf("") }
+    var clusterName by remember { mutableStateOf("") }
+    var firstCategoryName by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .background(color = Color(0xFFF8F9FA))
-            .fillMaxSize()
-            .statusBarsPadding(),
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    fun closeSheet() {
+        sheetState = AddSheetState.Hidden
+        categoryTitle = ""; clusterName = ""; firstCategoryName = ""
+    }
+
+    val totalCategories = data.clusteredSections.sumOf { it.categories.size } + data.generalCategories.size
+
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF8F9FA))
+                .statusBarsPadding()
         ) {
-            Column(
+            // ── Header ─────────────────────────────────────────────────
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 28.dp)
+                ) {
+                    Text(
+                        text = "Listify",
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.65f),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "Pencil it in",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    )
+                    Spacer(Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        HeaderStat(
+                            modifier = Modifier.weight(1f),
+                            label = "Clusters",
+                            value = data.clusteredSections.size.toString()
+                        )
+                        HeaderStat(
+                            modifier = Modifier.weight(1f),
+                            label = "Categories",
+                            value = totalCategories.toString()
+                        )
+                        HeaderStat(
+                            modifier = Modifier.weight(1f),
+                            label = "General",
+                            value = data.generalCategories.size.toString()
+                        )
+                    }
+                }
+            }
+
+            // ── Body ───────────────────────────────────────────────────
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
-                horizontalAlignment = Alignment.Start // Left aligned looks more modern
+                    .weight(1f),
+                contentPadding = PaddingValues(bottom = 96.dp)
             ) {
-                Text(
-                    text = "Listify",
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = "Wanna add\nsomething?",
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    style = MaterialTheme.typography.displaySmall.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        lineHeight = 36.sp
+                // Clustered sections
+                items(data.clusteredSections) { section ->
+                    ClusterSection(
+                        section = section,
+                        onCategoryClick = onClick,
+                        onAddToCluster = {
+                            sheetState = AddSheetState.AddingToCluster(
+                                clusterId = section.cluster.id,
+                                clusterName = section.cluster.name
+                            )
+                        }
                     )
-                )
-                Spacer(modifier = Modifier.height(24.dp))
+                }
 
-                AnimatedContent(
-                    targetState = isEditing,
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
-                    },
-                    label = "AddCategoryTransition"
-                ) { editing ->
-                    if (editing) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TextField(
-                                value = categoryTitle,
-                                onValueChange = { categoryTitle = it },
-                                placeholder = { Text("Category Name...") },
-                                modifier = Modifier.weight(1f),
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    cursorColor = MaterialTheme.colorScheme.primary,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent
-                                ),
-                                shape = RoundedCornerShape(16.dp),
-                                singleLine = true
-                            )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            IconButton(
-                                onClick = {
-                                    if (categoryTitle.isNotBlank()) {
-                                        viewModel.addCategory(categoryTitle)
-                                        categoryTitle = ""
-                                        isEditing = false
-                                    }
-                                },
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .background(Color.White, RoundedCornerShape(16.dp))
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Check, // Or Icons.Rounded.Add
-                                    contentDescription = "Confirm",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    } else {
-                        Button(
-                            onClick = { isEditing = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.onPrimary,
-                                contentColor = MaterialTheme.colorScheme.primary
-                            ),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.AddCard,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "Add a new item",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                // General section
+                if (data.generalCategories.isNotEmpty()) {
+                    item {
+//                        SectionLabel("General")
+                        PointedDivider(
+                            modifier = Modifier.padding(start = 32.dp, end = 32.dp, top = 24.dp, bottom = 12.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
                     }
+                    items(data.generalCategories) { category ->
+                        GeneralCategoryCard(category = category, onClick = onClick)
+                    }
+                }
+
+                // Empty state
+                if (data.clusteredSections.isEmpty() && data.generalCategories.isEmpty()) {
+                    item { EmptyState() }
                 }
             }
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp)
+        // ── FAB ────────────────────────────────────────────────────
+        FloatingActionButton(
+            onClick = { sheetState = AddSheetState.Choosing },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(24.dp),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            shape = RoundedCornerShape(18.dp)
         ) {
-            items(list) { item ->
-                CategoryCard(
-                    id = item.id,
-                    title = item.title,
-                    timestamp = "Last Added: ${formatTimestamp(item.lastUpdated)}",
-                    onClick = onClick
-                )
+            Icon(imageVector = Icons.Rounded.Add, contentDescription = "Add")
+        }
+    }
+
+    // ── Bottom Sheet ───────────────────────────────────────────────
+    if (sheetState !is AddSheetState.Hidden) {
+        ModalBottomSheet(
+            onDismissRequest = { closeSheet() },
+            containerColor = Color.White,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        ) {
+            AnimatedContent(
+                targetState = sheetState,
+                transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(180)) },
+                label = "SheetTransition"
+            ) { state ->
+                when (state) {
+                    is AddSheetState.Choosing -> ChoosingSheet(
+                        onChooseCategory = { sheetState = AddSheetState.AddingGeneral },
+                        onChooseCluster = { sheetState = AddSheetState.AddingCluster }
+                    )
+
+                    is AddSheetState.AddingGeneral -> SingleFieldSheet(
+                        title = "New Category",
+                        subtitle = "It will appear in the General section.",
+                        fieldLabel = "Category Name",
+                        hint = "e.g. Grocery, Gym, Travel…",
+                        value = categoryTitle,
+                        onValueChange = { categoryTitle = it },
+                        confirmLabel = "Add Category",
+                        onConfirm = {
+                            onAddCategory(categoryTitle, null)
+                            closeSheet()
+                        }
+                    )
+
+                    is AddSheetState.AddingCluster -> AddClusterSheet(
+                        clusterName = clusterName,
+                        firstCategory = firstCategoryName,
+                        onClusterNameChange = { clusterName = it },
+                        onFirstCategoryChange = { firstCategoryName = it },
+                        onConfirm = {
+                            onAddCluster(clusterName, firstCategoryName)
+                            closeSheet()
+                        }
+                    )
+
+                    is AddSheetState.AddingToCluster -> SingleFieldSheet(
+                        title = "Add to \"${state.clusterName}\"",
+                        subtitle = "The new category will be added to this cluster.",
+                        fieldLabel = "Category Name",
+                        hint = "New category name…",
+                        value = categoryTitle,
+                        onValueChange = { categoryTitle = it },
+                        confirmLabel = "Add",
+                        onConfirm = {
+                            onAddCategory(categoryTitle, state.clusterId)
+                            closeSheet()
+                        }
+                    )
+
+                    else -> {}
+                }
+            }
+        }
+    }
+}
+
+// ── Cluster section ────────────────────────────────────────────────────────
+
+@Composable
+fun ClusterSection(
+    section: ClusterWithCategories,
+    onCategoryClick: (Long) -> Unit,
+    onAddToCluster: () -> Unit,
+) {
+    Column(modifier = Modifier.padding(top = 24.dp)) {
+        Text(
+            text = section.cluster.name.uppercase(),
+            modifier = Modifier.padding(start = 20.dp, bottom = 10.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.Gray,
+            letterSpacing = androidx.compose.ui.unit.TextUnit(1.2f, androidx.compose.ui.unit.TextUnitType.Sp)
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(section.categories) { category ->
+                ClusterCategoryCard(category = category, onClick = onCategoryClick)
+            }
+            item {
+                AddToClusterCard(onClick = onAddToCluster)
             }
         }
     }
 }
 
 @Composable
-fun CategoryCard(
-    id: Long,
-    title: String,
-    timestamp: String,
-    onClick: (Long) -> Unit
-) {
+fun ClusterCategoryCard(category: Category, onClick: (Long) -> Unit) {
+    Card(
+        modifier = Modifier
+            .size(width = 86.dp, height = 90.dp)
+            .clickable { onClick(category.id) },
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 6.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CreditCard,
+                    contentDescription = null,
+                    modifier = Modifier.padding(9.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            Spacer(Modifier.height(7.dp))
+            Text(
+                text = category.title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = Color(0xFF1A1C1E)
+            )
+        }
+    }
+}
+
+@Composable
+fun AddToClusterCard(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .size(width = 86.dp, height = 90.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+        ),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.primary,
+                shape = CircleShape,
+                modifier = Modifier.size(34.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = "Add to cluster",
+                    modifier = Modifier.padding(7.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+    }
+}
+
+// ── General section ────────────────────────────────────────────────────────
+
+@Composable
+fun SectionLabel(title: String) {
+    Text(
+        text = title.uppercase(),
+        modifier = Modifier.padding(start = 20.dp, top = 24.dp, bottom = 8.dp),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = Color.Gray,
+        letterSpacing = androidx.compose.ui.unit.TextUnit(1.2f, androidx.compose.ui.unit.TextUnitType.Sp)
+    )
+}
+
+@Composable
+fun GeneralCategoryCard(category: Category, onClick: (Long) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
-            .clickable { onClick(id) },
+            .padding(horizontal = 16.dp, vertical = 5.dp)
+            .clickable { onClick(category.id) },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(14.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 shape = CircleShape,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(44.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.CreditCard,
                     contentDescription = null,
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(10.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1C1E)
-                )
-                Text(
-                    text = timestamp,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-            }
-
+            Spacer(Modifier.width(14.dp))
+            Text(
+                text = category.title,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1A1C1E)
+            )
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
@@ -268,17 +435,256 @@ fun CategoryCard(
     }
 }
 
+// ── Header stat chip ───────────────────────────────────────────────────────
+
+@Composable
+fun HeaderStat(modifier: Modifier = Modifier, label: String, value: String) {
+    Surface(
+        modifier = modifier,
+        color = Color.White.copy(alpha = 0.15f),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = value,
+                color = MaterialTheme.colorScheme.onPrimary,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = label,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.65f),
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
+}
+
+// ── Empty state ────────────────────────────────────────────────────────────
+
+@Composable
+fun EmptyState() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 80.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Nothing here yet", style = MaterialTheme.typography.titleMedium, color = Color.Gray)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Tap + to create a category or cluster",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.LightGray
+            )
+        }
+    }
+}
+
+// ── Sheet composables ──────────────────────────────────────────────────────
+
+@Composable
+fun ChoosingSheet(onChooseCategory: () -> Unit, onChooseCluster: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 40.dp, top = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "What would you like to add?",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color(0xFF1A1C1E)
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "Create a standalone list or a named group of lists.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(28.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ChoiceCard(
+                modifier = Modifier.weight(1f),
+                icon = { Icon(Icons.Rounded.Category, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp)) },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                title = "Category",
+                subtitle = "A single list",
+                onClick = onChooseCategory
+            )
+            ChoiceCard(
+                modifier = Modifier.weight(1f),
+                icon = { Icon(Icons.Rounded.AccountTree, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(28.dp)) },
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                title = "Cluster",
+                subtitle = "Group of lists",
+                onClick = onChooseCluster
+            )
+        }
+    }
+}
+
+@Composable
+fun ChoiceCard(
+    modifier: Modifier = Modifier,
+    icon: @Composable () -> Unit,
+    containerColor: Color,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = modifier
+            .height(120.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            icon()
+            Column {
+                Text(title, fontWeight = FontWeight.Bold, color = Color(0xFF1A1C1E))
+                Text(subtitle, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            }
+        }
+    }
+}
+
+@Composable
+fun SingleFieldSheet(
+    title: String,
+    subtitle: String,
+    fieldLabel: String,
+    hint: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 40.dp, top = 8.dp)
+    ) {
+        Text(text = title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1C1E))
+        Spacer(Modifier.height(4.dp))
+        Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+        Spacer(Modifier.height(20.dp))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(fieldLabel) },
+            placeholder = { Text(hint) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+        )
+        Spacer(Modifier.height(20.dp))
+        Button(
+            onClick = onConfirm,
+            enabled = value.isNotBlank(),
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text(confirmLabel, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun AddClusterSheet(
+    clusterName: String,
+    firstCategory: String,
+    onClusterNameChange: (String) -> Unit,
+    onFirstCategoryChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 40.dp, top = 8.dp)
+    ) {
+        Text("New Cluster", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1C1E))
+        Spacer(Modifier.height(4.dp))
+        Text("Groups multiple related categories together.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+        Spacer(Modifier.height(20.dp))
+        OutlinedTextField(
+            value = clusterName,
+            onValueChange = onClusterNameChange,
+            label = { Text("Cluster Name") },
+            placeholder = { Text("e.g. Monthly Expense, Trip…") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+        )
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            value = firstCategory,
+            onValueChange = onFirstCategoryChange,
+            label = { Text("First Category") },
+            placeholder = { Text("e.g. January, Goa Trip…") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+        )
+        Spacer(Modifier.height(20.dp))
+        Button(
+            onClick = onConfirm,
+            enabled = clusterName.isNotBlank() && firstCategory.isNotBlank(),
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text("Create Cluster", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+// ── Preview ────────────────────────────────────────────────────────────────
+
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
-    val list = listOf(
-        Category(0, clusterId = 0,"Grocery", System.currentTimeMillis()),
-        Category(1, clusterId = 0, "Therapy", System.currentTimeMillis()),
-        Category(2, clusterId = 0, "Petrol", System.currentTimeMillis()),
+    val data = HomeScreenData(
+        clusteredSections = listOf(
+            ClusterWithCategories(
+                cluster = Cluster(1, "Monthly Expense", System.currentTimeMillis()),
+                categories = listOf(
+                    Category(1, 1, "Apr", System.currentTimeMillis()),
+                    Category(2, 1, "Mar", System.currentTimeMillis()),
+                    Category(3, 1, "Feb", System.currentTimeMillis()),
+                )
+            ),
+            ClusterWithCategories(
+                cluster = Cluster(2, "Trip", System.currentTimeMillis()),
+                categories = listOf(
+                    Category(4, 2, "Noida", System.currentTimeMillis()),
+                    Category(5, 2, "Shimla", System.currentTimeMillis()),
+                )
+            )
+        ),
+        generalCategories = listOf(
+            Category(6, null, "Grocery", System.currentTimeMillis()),
+            Category(7, null, "Petrol", System.currentTimeMillis()),
+            Category(8, null, "Shopping", System.currentTimeMillis()),
+        )
     )
-    HomeScreenContent(
-        list = list,
-        onClick = {}
-    )
+    HomeScreenContent(data = data, onClick = {}, onAddCategory = { _, _ -> }, onAddCluster = { _, _ -> })
 }
-

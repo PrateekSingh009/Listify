@@ -25,20 +25,20 @@ class ListViewModel @Inject constructor(
     private val addTransactionUseCase: AddTransactionUseCase,
     private val deleteTransactionUseCase: DeleteTransactionUseCase
 ): ViewModel() {
-    private val groupId: Long = checkNotNull(savedStateHandle["groupId"])
+    private val categoryId: Long = checkNotNull(savedStateHandle["categoryId"])
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    val transactions : StateFlow<List<Transaction>> = getTransactionListUseCase(groupId)
+    val transactions : StateFlow<List<Transaction>> = getTransactionListUseCase(categoryId)
         .stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000L),emptyList())
 
-    val selectedCategory : StateFlow<Category> = getCategoryByIdUseCase(groupId)
+    val selectedCategory : StateFlow<Category> = getCategoryByIdUseCase(categoryId)
         .stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000L),Category(0,0,"",0))
 
     fun addTransaction(title: String, amount: Double) {
         viewModelScope.launch {
-            addTransactionUseCase(title,amount,groupId)
+            addTransactionUseCase(title,amount,categoryId)
                 .onSuccess {
                     _error.value = null
                 }

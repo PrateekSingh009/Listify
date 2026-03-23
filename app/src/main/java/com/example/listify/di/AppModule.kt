@@ -6,11 +6,7 @@ import com.example.listify.data.local.AppDatabase
 import com.example.listify.data.local.Dao
 import com.example.listify.data.repository.DataRepositoryImpl
 import com.example.listify.domain.repository.DataRepository
-import com.example.listify.domain.usecase.AddCategoryUseCase
-import com.example.listify.domain.usecase.AddTransactionUseCase
-import com.example.listify.domain.usecase.GetCategoryUseCase
-import com.example.listify.domain.usecase.GetTransactionListUseCase
-import com.example.listify.domain.usecase.GetCategoryByIdUseCase
+import com.example.listify.domain.usecase.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,7 +22,7 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "listify.db")
-            .fallbackToDestructiveMigration() // We'll remove this once done
+            .fallbackToDestructiveMigration()
             .build()
 
     @Provides
@@ -35,18 +31,41 @@ object AppModule {
     @Provides
     fun provideDataRepository(dao: Dao): DataRepository = DataRepositoryImpl(dao)
 
+    // ── Home ──────────────────────────────────────────────────────
     @Provides
-    fun provideAddGroupUseCase(repository : DataRepository) = AddCategoryUseCase(repository)
+    fun provideGetHomeScreenDataUseCase(repository: DataRepository) =
+        GetHomeScreenDataUseCase(repository)
 
     @Provides
-    fun provideAddItemUseCase(repository : DataRepository) = AddTransactionUseCase(repository)
+    fun provideAddCategoryUseCase(repository: DataRepository) =
+        AddCategoryUseCase(repository)
 
     @Provides
-    fun provideGetGroupUseCase(repository : DataRepository) = GetCategoryUseCase(repository)
+    fun provideAddClusterUseCase(repository: DataRepository) =
+        AddClusterUseCase(repository)
 
     @Provides
-    fun provideGetItemListUseCase(repository : DataRepository) = GetTransactionListUseCase(repository)
+    fun provideDeleteCategoryUseCase(repository: DataRepository) =
+        DeleteCategoryUseCase(repository)
+
+    // ── List ──────────────────────────────────────────────────────
+    @Provides
+    fun provideGetCategoryUseCase(repository: DataRepository) =
+        GetCategoryUseCase(repository)
 
     @Provides
-    fun provideGetGroupByIdUseCase(repository : DataRepository) = GetCategoryByIdUseCase(repository)
+    fun provideAddTransactionUseCase(repository: DataRepository) =
+        AddTransactionUseCase(repository)
+
+    @Provides
+    fun provideGetTransactionListUseCase(repository: DataRepository) =
+        GetTransactionListUseCase(repository)
+
+    @Provides
+    fun provideGetCategoryByIdUseCase(repository: DataRepository) =
+        GetCategoryByIdUseCase(repository)
+
+    @Provides
+    fun provideDeleteTransactionUseCase(repository: DataRepository) =
+        DeleteTransactionUseCase(repository)
 }
