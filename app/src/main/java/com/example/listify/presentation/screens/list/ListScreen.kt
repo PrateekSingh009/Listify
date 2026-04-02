@@ -21,12 +21,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCard
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LibraryAdd
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -41,7 +48,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -54,6 +63,8 @@ import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Transaction
 import com.example.listify.domain.utils.formatToDateOnly
 import com.example.listify.domain.utils.formatToTimeOnly
+import com.example.listify.presentation.screens.utils.DeleteConfirmationSheet
+import com.example.listify.presentation.screens.utils.HeaderStat
 
 private lateinit var viewModel: ListViewModel
 
@@ -74,7 +85,11 @@ fun ListScreen(
         expenses = expenses,
         groupedExpenses = groupedExpenses,
         selectedGroup = selectedGroup,
-        onClick = onClick
+        onBackClick = onClick,
+        onDeleteCategory =  {
+            viewModel.deleteCategory(selectedGroup)
+            onClick()
+        }
     )
 }
 
@@ -140,7 +155,8 @@ fun ListScreenContent(
     expenses: List<Transaction>,
     groupedExpenses: Map<String, List<Transaction>>,
     selectedGroup: Category,
-    onClick: () -> Unit
+    onBackClick: () -> Unit,
+    onDeleteCategory: () -> Unit,
 ) {
 
     val totalSpend = remember(expenses) { expenses.sumOf { it.amount } }
@@ -150,6 +166,8 @@ fun ListScreenContent(
     }
     var transactionTitle by remember { mutableStateOf("") }
     var transactionAmount by remember { mutableStateOf("") }
+    var showDeleteSheet by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -157,29 +175,104 @@ fun ListScreenContent(
             .background(MaterialTheme.colorScheme.primary)
             .statusBarsPadding()
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Back button
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+            Text(
+                text = selectedGroup.title,
+                modifier =  Modifier.padding(start = 12.dp),
+                color = Color.White,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Delete bin
+            IconButton(onClick = { showDeleteSheet = true }) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = "Delete Category",
+                    tint = Color.White.copy(alpha = 0.85f)
+                )
+            }
+
+            // 3-dot menu
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = "More Options",
+                        tint = Color.White
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Add Total Expense",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.LibraryAdd,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        },
+                        onClick = {
+                            showMenu = false
+
+                        }
+                    )
+                }
+            }
+        }
         Column(
             modifier = Modifier
-                .padding(24.dp)
+                .padding(vertical = 8.dp, horizontal = 20.dp)
                 .background(MaterialTheme.colorScheme.primary)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Column {
                     Text(
-                        text = selectedGroup.title,
+                        text = "Total Spend",
+                        color = Color.White.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Text(
+                        "₹${totalSpend.toInt()}",
                         color = Color.White,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Black
                     )
                 }
 
                 if (todaySpend > 0) {
                     Surface(
                         color = Color.White.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.align(Alignment.Top)
                     ) {
                         Text(
                             text = "Today: ₹${todaySpend.toInt()}",
@@ -191,17 +284,23 @@ fun ListScreenContent(
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Total Spend",
-                color = Color.White.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.labelMedium
-            )
-            Text(
-                "₹${totalSpend.toInt()}",
-                color = Color.White,
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Black
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                HeaderStat(
+                    modifier = Modifier.weight(1f),
+                    label = "Total Expense",
+                    value = 10000.toString()
+                )
+                HeaderStat(
+                    modifier = Modifier.weight(1f),
+                    label = "Remaining Expense",
+                    value = (10000-4875).toString()
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 tonalElevation = 8.dp,
@@ -260,6 +359,7 @@ fun ListScreenContent(
                 }
             }
         }
+        Spacer(Modifier.padding(top = 4.dp))
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -313,6 +413,17 @@ fun ListScreenContent(
 
         }
     }
+    // ── Delete confirmation sheet ────────────────────────────────────
+    if (showDeleteSheet) {
+        DeleteConfirmationSheet(
+            onDismiss = { showDeleteSheet = false },
+            onConfirm = {
+                showDeleteSheet = false
+                onDeleteCategory()
+            },
+            groupName = selectedGroup.title
+        )
+    }
 }
 
 @Preview(showBackground = true)
@@ -360,7 +471,8 @@ fun ListScreenPreview() {
         expenses = expenses,
         groupedExpenses = groupedExpenses,
         selectedGroup = Category(0, 0,"Grocery", System.currentTimeMillis()),
-        onClick = {}
+        onBackClick = {},
+        onDeleteCategory = {}
     )
 }
 

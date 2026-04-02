@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Transaction
 import com.example.listify.domain.usecase.AddTransactionUseCase
+import com.example.listify.domain.usecase.DeleteCategoryUseCase
 import com.example.listify.domain.usecase.DeleteTransactionUseCase
 import com.example.listify.domain.usecase.GetCategoryByIdUseCase
 import com.example.listify.domain.usecase.GetTransactionListUseCase
@@ -23,7 +24,8 @@ class ListViewModel @Inject constructor(
     private val getTransactionListUseCase: GetTransactionListUseCase,
     private val getCategoryByIdUseCase: GetCategoryByIdUseCase,
     private val addTransactionUseCase: AddTransactionUseCase,
-    private val deleteTransactionUseCase: DeleteTransactionUseCase
+    private val deleteTransactionUseCase: DeleteTransactionUseCase,
+    private val deleteCategoryUseCase: DeleteCategoryUseCase
 ): ViewModel() {
     private val categoryId: Long = checkNotNull(savedStateHandle["categoryId"])
 
@@ -50,6 +52,14 @@ class ListViewModel @Inject constructor(
         viewModelScope.launch {
             deleteTransactionUseCase(transaction).onFailure {
                 _error.value = "Could not delete transaction"
+            }
+        }
+    }
+
+    fun deleteCategory(category: Category) {
+        viewModelScope.launch {
+            deleteCategoryUseCase(category).onFailure {
+                _error.value = "Could not delete category"
             }
         }
     }

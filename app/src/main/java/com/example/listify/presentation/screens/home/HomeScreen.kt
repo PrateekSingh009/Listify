@@ -38,7 +38,10 @@ import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Cluster
 import com.example.listify.domain.model.ClusterWithCategories
 import com.example.listify.domain.model.HomeScreenData
+import com.example.listify.presentation.screens.utils.AddClusterSheet
+import com.example.listify.presentation.screens.utils.HeaderStat
 import com.example.listify.presentation.screens.utils.PointedDivider
+import com.example.listify.presentation.screens.utils.SingleFieldSheet
 
 // ── Sheet state machine ────────────────────────────────────────────────────
 
@@ -49,8 +52,6 @@ sealed class AddSheetState {
     object AddingCluster : AddSheetState()
     data class AddingToCluster(val clusterId: Long, val clusterName: String) : AddSheetState()
 }
-
-// ── Entry point ────────────────────────────────────────────────────────────
 
 @Composable
 fun HomeScreen(
@@ -122,8 +123,32 @@ fun HomeScreenContent(
                             fontWeight = FontWeight.ExtraBold
                         )
                     )
-                    Spacer(Modifier.height(20.dp))
-
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = { sheetState = AddSheetState.Choosing } ,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.onPrimary,
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.AddCard,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Add to the Book",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -187,20 +212,6 @@ fun HomeScreenContent(
                     item { EmptyState() }
                 }
             }
-        }
-
-        // ── FAB ────────────────────────────────────────────────────
-        FloatingActionButton(
-            onClick = { sheetState = AddSheetState.Choosing },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(24.dp),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            shape = RoundedCornerShape(18.dp)
-        ) {
-            Icon(imageVector = Icons.Rounded.Add, contentDescription = "Add")
         }
     }
 
@@ -434,35 +445,6 @@ fun GeneralCategoryCard(category: Category, onClick: (Long) -> Unit) {
         }
     }
 }
-
-// ── Header stat chip ───────────────────────────────────────────────────────
-
-@Composable
-fun HeaderStat(modifier: Modifier = Modifier, label: String, value: String) {
-    Surface(
-        modifier = modifier,
-        color = Color.White.copy(alpha = 0.15f),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = value,
-                color = MaterialTheme.colorScheme.onPrimary,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = label,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.65f),
-                style = MaterialTheme.typography.labelSmall
-            )
-        }
-    }
-}
-
 // ── Empty state ────────────────────────────────────────────────────────────
 
 @Composable
@@ -559,100 +541,6 @@ fun ChoiceCard(
                 Text(title, fontWeight = FontWeight.Bold, color = Color(0xFF1A1C1E))
                 Text(subtitle, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
             }
-        }
-    }
-}
-
-@Composable
-fun SingleFieldSheet(
-    title: String,
-    subtitle: String,
-    fieldLabel: String,
-    hint: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    confirmLabel: String,
-    onConfirm: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 40.dp, top = 8.dp)
-    ) {
-        Text(text = title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1C1E))
-        Spacer(Modifier.height(4.dp))
-        Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-        Spacer(Modifier.height(20.dp))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text(fieldLabel) },
-            placeholder = { Text(hint) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
-        )
-        Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = onConfirm,
-            enabled = value.isNotBlank(),
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text(confirmLabel, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-fun AddClusterSheet(
-    clusterName: String,
-    firstCategory: String,
-    onClusterNameChange: (String) -> Unit,
-    onFirstCategoryChange: (String) -> Unit,
-    onConfirm: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 40.dp, top = 8.dp)
-    ) {
-        Text("New Cluster", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1C1E))
-        Spacer(Modifier.height(4.dp))
-        Text("Groups multiple related categories together.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-        Spacer(Modifier.height(20.dp))
-        OutlinedTextField(
-            value = clusterName,
-            onValueChange = onClusterNameChange,
-            label = { Text("Cluster Name") },
-            placeholder = { Text("e.g. Monthly Expense, Trip…") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-        )
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(
-            value = firstCategory,
-            onValueChange = onFirstCategoryChange,
-            label = { Text("First Category") },
-            placeholder = { Text("e.g. January, Goa Trip…") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
-        )
-        Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = onConfirm,
-            enabled = clusterName.isNotBlank() && firstCategory.isNotBlank(),
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text("Create Cluster", fontWeight = FontWeight.Bold)
         }
     }
 }
