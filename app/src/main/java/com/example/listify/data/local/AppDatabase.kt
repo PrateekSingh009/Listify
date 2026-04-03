@@ -6,7 +6,7 @@ import com.example.listify.data.local.entity.CategoryEntity
 import com.example.listify.data.local.entity.ClusterEntity
 import com.example.listify.data.local.entity.TransactionEntity
 
-@Database(entities = [ClusterEntity::class, CategoryEntity::class, TransactionEntity::class], version = 3, exportSchema = false)
+@Database(entities = [ClusterEntity::class, CategoryEntity::class, TransactionEntity::class], version = 4, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): Dao
 }

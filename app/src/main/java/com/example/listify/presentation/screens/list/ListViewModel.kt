@@ -10,6 +10,7 @@ import com.example.listify.domain.usecase.DeleteCategoryUseCase
 import com.example.listify.domain.usecase.DeleteTransactionUseCase
 import com.example.listify.domain.usecase.GetCategoryByIdUseCase
 import com.example.listify.domain.usecase.GetTransactionListUseCase
+import com.example.listify.domain.usecase.UpdateTotalPlannedUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,7 +26,8 @@ class ListViewModel @Inject constructor(
     private val getCategoryByIdUseCase: GetCategoryByIdUseCase,
     private val addTransactionUseCase: AddTransactionUseCase,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
-    private val deleteCategoryUseCase: DeleteCategoryUseCase
+    private val deleteCategoryUseCase: DeleteCategoryUseCase,
+    private val updateTotalPlannedUseCase: UpdateTotalPlannedUseCase
 ): ViewModel() {
     private val categoryId: Long = checkNotNull(savedStateHandle["categoryId"])
 
@@ -36,7 +38,7 @@ class ListViewModel @Inject constructor(
         .stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000L),emptyList())
 
     val selectedCategory : StateFlow<Category> = getCategoryByIdUseCase(categoryId)
-        .stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000L),Category(0,0,"",0))
+        .stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000L),Category(0, null, "", System.currentTimeMillis(), 0.0))
 
     fun addTransaction(title: String, amount: Double) {
         viewModelScope.launch {
@@ -62,5 +64,17 @@ class ListViewModel @Inject constructor(
                 _error.value = "Could not delete category"
             }
         }
+    }
+
+    fun setTotalPlanned(amount: Double) {
+        viewModelScope.launch {
+            updateTotalPlannedUseCase(categoryId, amount)
+                .onSuccess { _error.value = null }
+                .onFailure { _error.value = it.message }
+        }
+    }
+
+    fun clearTotalPlanned() {
+        setTotalPlanned(0.0)
     }
 }

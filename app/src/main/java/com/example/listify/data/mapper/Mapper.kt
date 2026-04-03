@@ -9,11 +9,20 @@ import com.example.listify.domain.model.Cluster
 import com.example.listify.domain.model.ClusterWithCategories
 import com.example.listify.domain.model.Transaction
 
-fun TransactionEntity.toDomain() = Transaction(id, title, amount, updatedAt,categoryId)
-fun Transaction.toEntity() = TransactionEntity(id, title, amount, updatedAt,categoryId)
+fun TransactionEntity.toDomain() = Transaction(id, title, amount, updatedAt, categoryId)
+fun Transaction.toEntity() = TransactionEntity(id, title, amount, updatedAt, categoryId)
 
-fun CategoryEntity.toDomain() = Category(id, clusterId,title,lastUpdated)
-fun Category.toEntity() = CategoryEntity(id, clusterId,title,lastUpdated)
+//fun CategoryEntity.toDomain() = Category(id, clusterId, title, lastUpdated, totalPlanned)
+fun CategoryEntity?.toDomain(): Category = this?.let {
+    Category(
+        id = it.id,
+        clusterId = it.clusterId,
+        title = it.title,
+        lastUpdated = it.lastUpdated,
+        totalPlanned = it.totalPlanned
+    )
+} ?: Category(0, null, "Unknown", System.currentTimeMillis(), 0.0)
+fun Category.toEntity() = CategoryEntity(id, clusterId, title, lastUpdated, totalPlanned)
 
 fun ClusterEntity.toDomain() = Cluster(id, name, createdAt)
 fun Cluster.toEntity() = ClusterEntity(id, name, createdAt)

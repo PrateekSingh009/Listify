@@ -4,5 +4,6 @@ data class Category(
     val id: Long = 0,
     val clusterId : Long?,
     val title: String,
-    val lastUpdated : Long
+    val lastUpdated : Long,
+    val totalPlanned: Double = 0.0
 )

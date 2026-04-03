@@ -68,4 +68,8 @@ object AppModule {
     @Provides
     fun provideDeleteTransactionUseCase(repository: DataRepository) =
         DeleteTransactionUseCase(repository)
+
+    @Provides
+    fun provideUpdateTotalPlannedUseCase(repository: DataRepository) =
+        UpdateTotalPlannedUseCase(repository)
 }

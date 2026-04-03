@@ -23,6 +23,9 @@ interface Dao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertCluster(clusterEntity: ClusterEntity): Long
 
+    @Delete
+    suspend fun deleteCluster(cluster: ClusterEntity)
+
     // ── Category ─────────────────────────────────────────────────
     @Query("SELECT * FROM categories WHERE clusterId IS NULL ORDER BY lastUpdated DESC")
     abstract fun getGeneralCategories(): Flow<List<CategoryEntity>>
@@ -42,6 +45,12 @@ interface Dao {
 
     @Delete
     abstract suspend fun deleteCategory(categoryEntity: CategoryEntity)
+
+    @Query("SELECT COUNT(*) FROM categories WHERE clusterId = :clusterId")
+    suspend fun getCategoryCountInCluster(clusterId: Long): Int
+
+    @Query("UPDATE categories SET totalPlanned = :totalPlanned WHERE id = :categoryId")
+    suspend fun updateTotalPlanned(categoryId: Long, totalPlanned: Double)
 
     // ── Transaction ───────────────────────────────────────────────
     @Query("SELECT * FROM transactions WHERE categoryId = :categoryId ORDER BY updatedAt DESC")

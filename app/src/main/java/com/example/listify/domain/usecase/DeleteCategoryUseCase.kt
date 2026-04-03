@@ -9,7 +9,7 @@ class DeleteCategoryUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(category: Category): Result<Unit> {
         return try {
-            repository.deleteCategory(category)
+            repository.deleteCategoryAndCleanupCluster(category)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

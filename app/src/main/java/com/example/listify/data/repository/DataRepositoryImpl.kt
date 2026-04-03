@@ -60,6 +60,21 @@ class DataRepositoryImpl @Inject constructor(
     override suspend fun deleteCategory(category: Category) =
         dao.deleteCategory(category.toEntity())
 
+    override suspend fun deleteCategoryAndCleanupCluster(category: Category) {
+        dao.deleteCategory(category.toEntity())
+
+        category.clusterId?.let { clusterId ->
+            val remainingCount = dao.getCategoryCountInCluster(clusterId)
+            if (remainingCount == 0) {
+                dao.deleteCluster(Cluster(id = clusterId, name = "", createdAt = 0).toEntity())
+            }
+        }
+    }
+
+    override suspend fun updateTotalPlanned(categoryId: Long, totalPlanned: Double) {
+        dao.updateTotalPlanned(categoryId, totalPlanned)
+    }
+
     override suspend fun insertTransaction(transaction: Transaction): Long =
         dao.insertTransaction(transaction.toEntity())
 

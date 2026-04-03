@@ -65,17 +65,15 @@ import com.example.listify.domain.utils.formatToDateOnly
 import com.example.listify.domain.utils.formatToTimeOnly
 import com.example.listify.presentation.screens.utils.DeleteConfirmationSheet
 import com.example.listify.presentation.screens.utils.HeaderStat
-
-private lateinit var viewModel: ListViewModel
+import com.example.listify.presentation.screens.utils.TotalExpenseSheet
 
 @Composable
 fun ListScreen(
     listViewModel: ListViewModel = hiltViewModel(),
     onClick: () -> Unit
 ) {
-    viewModel = listViewModel
-    val expenses by viewModel.transactions.collectAsState()
-    val selectedGroup by viewModel.selectedCategory.collectAsState()
+    val expenses by listViewModel.transactions.collectAsState()
+    val selectedGroup by listViewModel.selectedCategory.collectAsState()
     val groupedExpenses = remember(expenses) {
         expenses
             .sortedByDescending { it.updatedAt }
@@ -87,9 +85,13 @@ fun ListScreen(
         selectedGroup = selectedGroup,
         onBackClick = onClick,
         onDeleteCategory =  {
-            viewModel.deleteCategory(selectedGroup)
             onClick()
-        }
+            listViewModel.deleteCategory(selectedGroup)
+        },
+        onAddTransaction = listViewModel::addTransaction,
+        onSetTotalPlanned = listViewModel::setTotalPlanned,
+        onClearTotalPlanned = listViewModel::clearTotalPlanned
+
     )
 }
 
@@ -157,6 +159,9 @@ fun ListScreenContent(
     selectedGroup: Category,
     onBackClick: () -> Unit,
     onDeleteCategory: () -> Unit,
+    onAddTransaction: (String, Double) -> Unit,
+    onSetTotalPlanned: (Double) -> Unit,
+    onClearTotalPlanned: () -> Unit
 ) {
 
     val totalSpend = remember(expenses) { expenses.sumOf { it.amount } }
@@ -168,6 +173,10 @@ fun ListScreenContent(
     var transactionAmount by remember { mutableStateOf("") }
     var showDeleteSheet by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+    var showTotalExpenseSheet by remember { mutableStateOf(false) }
+
+    val hasTotalPlanned = selectedGroup.totalPlanned > 0.0
+    val remainingExpense = selectedGroup.totalPlanned - totalSpend
 
     Column(
         modifier = Modifier
@@ -220,11 +229,12 @@ fun ListScreenContent(
                 DropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false },
+                    modifier = Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
                 ) {
                     DropdownMenuItem(
                         text = {
                             Text(
-                                "Add Total Expense",
+                                if (hasTotalPlanned) "Remove Total Expense" else "Add Total Expense",
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 fontWeight = FontWeight.Medium
                             )
@@ -238,7 +248,11 @@ fun ListScreenContent(
                         },
                         onClick = {
                             showMenu = false
-
+                            if (hasTotalPlanned) {
+                                onClearTotalPlanned()
+                            } else {
+                                showTotalExpenseSheet = true
+                            }
                         }
                     )
                 }
@@ -284,22 +298,24 @@ fun ListScreenContent(
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                HeaderStat(
-                    modifier = Modifier.weight(1f),
-                    label = "Total Expense",
-                    value = 10000.toString()
-                )
-                HeaderStat(
-                    modifier = Modifier.weight(1f),
-                    label = "Remaining Expense",
-                    value = (10000-4875).toString()
-                )
+            if (hasTotalPlanned) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    HeaderStat(
+                        modifier = Modifier.weight(1f),
+                        label = "Total Expense",
+                        value = selectedGroup.totalPlanned.toInt().toString()
+                    )
+                    HeaderStat(
+                        modifier = Modifier.weight(1f),
+                        label = "Remaining Expense",
+                        value = remainingExpense.toInt().toString()
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
             }
-            Spacer(modifier = Modifier.height(4.dp))
 
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
@@ -340,7 +356,7 @@ fun ListScreenContent(
                     Button(
                         onClick = {
                             if (transactionTitle.isNotBlank() && transactionAmount != "0.0") {
-                                viewModel.addTransaction(transactionTitle, transactionAmount.toDoubleOrNull() ?: 0.0)
+                                onAddTransaction(transactionTitle, transactionAmount.toDoubleOrNull() ?: 0.0)
                                 transactionTitle = ""
                                 transactionAmount = "0.0"
                             }
@@ -424,6 +440,15 @@ fun ListScreenContent(
             groupName = selectedGroup.title
         )
     }
+    if (showTotalExpenseSheet) {
+        TotalExpenseSheet(
+            onDismiss = { showTotalExpenseSheet = false },
+            onConfirm = { amount ->
+                onSetTotalPlanned(amount)
+                showTotalExpenseSheet = false
+            }
+        )
+    }
 }
 
 @Preview(showBackground = true)
@@ -472,7 +497,10 @@ fun ListScreenPreview() {
         groupedExpenses = groupedExpenses,
         selectedGroup = Category(0, 0,"Grocery", System.currentTimeMillis()),
         onBackClick = {},
-        onDeleteCategory = {}
+        onDeleteCategory = {},
+        onAddTransaction = {} as (String, Double) -> Unit,
+        onSetTotalPlanned = {},
+        onClearTotalPlanned = {}
     )
 }
 

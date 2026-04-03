@@ -314,9 +314,8 @@ fun ClusterSection(
 @Composable
 fun ClusterCategoryCard(category: Category, onClick: (Long) -> Unit) {
     Card(
-        modifier = Modifier
-            .size(width = 86.dp, height = 90.dp)
-            .clickable { onClick(category.id) },
+        onClick = { onClick(category.id) },
+        modifier = Modifier.size(width = 86.dp, height = 90.dp),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -356,9 +355,8 @@ fun ClusterCategoryCard(category: Category, onClick: (Long) -> Unit) {
 @Composable
 fun AddToClusterCard(onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .size(width = 86.dp, height = 90.dp)
-            .clickable { onClick() },
+        onClick = onClick,
+        modifier = Modifier.size(width = 86.dp, height = 90.dp),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
@@ -403,10 +401,10 @@ fun SectionLabel(title: String) {
 @Composable
 fun GeneralCategoryCard(category: Category, onClick: (Long) -> Unit) {
     Card(
+        onClick = { onClick(category.id) },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 5.dp)
-            .clickable { onClick(category.id) },
+            .padding(horizontal = 16.dp, vertical = 5.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
