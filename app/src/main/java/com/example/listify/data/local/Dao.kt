@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
 import com.example.listify.data.local.entity.CategoryEntity
 import com.example.listify.data.local.entity.ClusterEntity
 import com.example.listify.data.local.entity.ClusterWithCategoriesEntity
@@ -39,6 +40,9 @@ interface Dao {
 
     @Query("UPDATE categories SET lastUpdated = :lastUpdated WHERE id = :categoryId")
     abstract suspend fun updateLastUpdated(categoryId: Long, lastUpdated: Long)
+
+    @Update
+    suspend fun update(category: CategoryEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertCategory(categoryEntity: CategoryEntity): Long

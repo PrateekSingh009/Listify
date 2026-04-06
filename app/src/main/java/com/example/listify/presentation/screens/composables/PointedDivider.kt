@@ -1,4 +1,4 @@
-package com.example.listify.presentation.screens.utils
+package com.example.listify.presentation.screens.composables
 
 
 
@@ -10,8 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.alpha
-import androidx.core.graphics.toColor
 
 
 @Composable

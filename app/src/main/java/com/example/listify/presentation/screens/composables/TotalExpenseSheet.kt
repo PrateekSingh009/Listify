@@ -1,4 +1,4 @@
-package com.example.listify.presentation.screens.utils
+package com.example.listify.presentation.screens.composables
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer

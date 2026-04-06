@@ -10,6 +10,7 @@ import com.example.listify.domain.usecase.DeleteCategoryUseCase
 import com.example.listify.domain.usecase.DeleteTransactionUseCase
 import com.example.listify.domain.usecase.GetCategoryByIdUseCase
 import com.example.listify.domain.usecase.GetTransactionListUseCase
+import com.example.listify.domain.usecase.UpdateCategoryUseCase
 import com.example.listify.domain.usecase.UpdateTotalPlannedUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,8 @@ class ListViewModel @Inject constructor(
     private val addTransactionUseCase: AddTransactionUseCase,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val deleteCategoryUseCase: DeleteCategoryUseCase,
-    private val updateTotalPlannedUseCase: UpdateTotalPlannedUseCase
+    private val updateTotalPlannedUseCase: UpdateTotalPlannedUseCase,
+    private val updateCategoryUseCase: UpdateCategoryUseCase
 ): ViewModel() {
     private val categoryId: Long = checkNotNull(savedStateHandle["categoryId"])
 
@@ -76,5 +78,18 @@ class ListViewModel @Inject constructor(
 
     fun clearTotalPlanned() {
         setTotalPlanned(0.0)
+    }
+
+    fun updateCategoryTitle(newTitle: String) {
+        viewModelScope.launch {
+            val current = selectedCategory.value
+            val updated = current.copy(
+                title = newTitle,
+                lastUpdated = System.currentTimeMillis()
+            )
+            updateCategoryUseCase(updated)
+                .onSuccess { _error.value = null }
+                .onFailure { _error.value = it.message }
+        }
     }
 }

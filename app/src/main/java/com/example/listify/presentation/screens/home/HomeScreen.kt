@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreditCard
@@ -28,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,20 +36,11 @@ import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Cluster
 import com.example.listify.domain.model.ClusterWithCategories
 import com.example.listify.domain.model.HomeScreenData
-import com.example.listify.presentation.screens.utils.AddClusterSheet
-import com.example.listify.presentation.screens.utils.HeaderStat
-import com.example.listify.presentation.screens.utils.PointedDivider
-import com.example.listify.presentation.screens.utils.SingleFieldSheet
-
-// ── Sheet state machine ────────────────────────────────────────────────────
-
-sealed class AddSheetState {
-    object Hidden : AddSheetState()
-    object Choosing : AddSheetState()
-    object AddingGeneral : AddSheetState()
-    object AddingCluster : AddSheetState()
-    data class AddingToCluster(val clusterId: Long, val clusterName: String) : AddSheetState()
-}
+import com.example.listify.presentation.screens.composables.AddClusterSheet
+import com.example.listify.presentation.screens.composables.HeaderStat
+import com.example.listify.presentation.screens.composables.PointedDivider
+import com.example.listify.presentation.screens.composables.SingleFieldSheet
+import com.example.listify.presentation.screens.utils.AddSheetState
 
 @Composable
 fun HomeScreen(

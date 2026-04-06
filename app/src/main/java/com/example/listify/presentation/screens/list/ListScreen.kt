@@ -1,5 +1,10 @@
 package com.example.listify.presentation.screens.list
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -26,18 +31,22 @@ import androidx.compose.material.icons.filled.AddCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,9 +57,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -63,9 +70,14 @@ import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Transaction
 import com.example.listify.domain.utils.formatToDateOnly
 import com.example.listify.domain.utils.formatToTimeOnly
-import com.example.listify.presentation.screens.utils.DeleteConfirmationSheet
-import com.example.listify.presentation.screens.utils.HeaderStat
-import com.example.listify.presentation.screens.utils.TotalExpenseSheet
+import com.example.listify.presentation.screens.composables.AddClusterSheet
+import com.example.listify.presentation.screens.composables.DeleteConfirmationSheet
+import com.example.listify.presentation.screens.composables.EditCategorySheet
+import com.example.listify.presentation.screens.composables.HeaderStat
+import com.example.listify.presentation.screens.composables.SingleFieldSheet
+import com.example.listify.presentation.screens.composables.TotalExpenseSheet
+import com.example.listify.presentation.screens.home.ChoosingSheet
+import com.example.listify.presentation.screens.utils.AddSheetState
 
 @Composable
 fun ListScreen(
@@ -90,8 +102,8 @@ fun ListScreen(
         },
         onAddTransaction = listViewModel::addTransaction,
         onSetTotalPlanned = listViewModel::setTotalPlanned,
-        onClearTotalPlanned = listViewModel::clearTotalPlanned
-
+        onClearTotalPlanned = listViewModel::clearTotalPlanned,
+        onUpdateCategoryTitle = listViewModel::updateCategoryTitle
     )
 }
 
@@ -151,7 +163,7 @@ fun TransactionItem(transaction: Transaction) {
 }
 
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ListScreenContent(
     expenses: List<Transaction>,
@@ -161,9 +173,11 @@ fun ListScreenContent(
     onDeleteCategory: () -> Unit,
     onAddTransaction: (String, Double) -> Unit,
     onSetTotalPlanned: (Double) -> Unit,
-    onClearTotalPlanned: () -> Unit
+    onClearTotalPlanned: () -> Unit,
+    onUpdateCategoryTitle: (String) -> Unit
 ) {
 
+    var sheetState by remember { mutableStateOf<AddSheetState>(AddSheetState.Hidden) }
     val totalSpend = remember(expenses) { expenses.sumOf { it.amount } }
     val todayDate = formatToDateOnly(System.currentTimeMillis())
     val todaySpend = remember(groupedExpenses) {
@@ -174,9 +188,14 @@ fun ListScreenContent(
     var showDeleteSheet by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     var showTotalExpenseSheet by remember { mutableStateOf(false) }
-
+    var editingTitle by remember { mutableStateOf(selectedGroup.title) }
     val hasTotalPlanned = selectedGroup.totalPlanned > 0.0
     val remainingExpense = selectedGroup.totalPlanned - totalSpend
+
+    fun closeSheet() {
+        sheetState = AddSheetState.Hidden
+        editingTitle = ""
+    }
 
     Column(
         modifier = Modifier
@@ -207,6 +226,19 @@ fun ListScreenContent(
             )
 
             Spacer(modifier = Modifier.weight(1f))
+
+            //Edit Button
+            IconButton(onClick = {
+                editingTitle = selectedGroup.title
+                sheetState = AddSheetState.EditingCategory(selectedGroup)
+            }) {
+                Icon(
+                    imageVector = Icons.Rounded.Edit,
+                    contentDescription = "Edit Category",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
 
             // Delete bin
             IconButton(onClick = { showDeleteSheet = true }) {
@@ -449,6 +481,39 @@ fun ListScreenContent(
             }
         )
     }
+
+    if (sheetState !is AddSheetState.Hidden) {
+        ModalBottomSheet(
+            onDismissRequest = { closeSheet() },
+            containerColor = Color.White,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        ) {
+            AnimatedContent(
+                targetState = sheetState,
+                transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(180)) },
+                label = "SheetTransition"
+            ) { state ->
+                when (state) {
+
+                    is AddSheetState.EditingCategory -> EditCategorySheet(
+                        currentTitle = selectedGroup.title,
+                        value = editingTitle,
+                        onValueChange = { editingTitle = it },
+                        onConfirm = {
+                            if (editingTitle.isNotBlank()) {
+                                onUpdateCategoryTitle(editingTitle)
+                                closeSheet()
+                            }
+                        },
+                        onDismiss = {}
+                    )
+
+                    else -> {}
+                }
+            }
+        }
+    }
 }
 
 @Preview(showBackground = true)
@@ -500,7 +565,8 @@ fun ListScreenPreview() {
         onDeleteCategory = {},
         onAddTransaction = {} as (String, Double) -> Unit,
         onSetTotalPlanned = {},
-        onClearTotalPlanned = {}
+        onClearTotalPlanned = {},
+        onUpdateCategoryTitle = {}
     )
 }
 

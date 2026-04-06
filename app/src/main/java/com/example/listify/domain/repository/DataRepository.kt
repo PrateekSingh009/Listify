@@ -28,6 +28,7 @@ interface DataRepository {
     // Category writes
     suspend fun insertCategory(category: Category): Long
     suspend fun deleteCategory(category: Category)
+    suspend fun updateCategory(category: Category)
     suspend fun deleteCategoryAndCleanupCluster(category: Category)
     suspend fun updateTotalPlanned(categoryId: Long, totalPlanned: Double)
 

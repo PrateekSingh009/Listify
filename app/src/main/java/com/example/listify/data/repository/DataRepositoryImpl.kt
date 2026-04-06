@@ -60,6 +60,10 @@ class DataRepositoryImpl @Inject constructor(
     override suspend fun deleteCategory(category: Category) =
         dao.deleteCategory(category.toEntity())
 
+    override suspend fun updateCategory(category: Category) {
+        dao.update(category.toEntity())
+    }
+
     override suspend fun deleteCategoryAndCleanupCluster(category: Category) {
         dao.deleteCategory(category.toEntity())
 
