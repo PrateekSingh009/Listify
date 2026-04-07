@@ -30,10 +30,14 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TotalExpenseSheet(
+    totalSpend: Double,
     onDismiss: () -> Unit,
     onConfirm: (Double) -> Unit
 ) {
     var amountText by remember { mutableStateOf("") }
+
+    val enteredAmount = amountText.toDoubleOrNull() ?: 0.0
+    val isValid = enteredAmount > totalSpend
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -73,16 +77,24 @@ fun TotalExpenseSheet(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
+            if (enteredAmount > 0 && !isValid) {
+                Text(
+                    text = "Total expense must be greater than current spend (₹${totalSpend.toInt()})",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
             Spacer(Modifier.height(20.dp))
 
             Button(
                 onClick = {
-                    val amount = amountText.toDoubleOrNull() ?: 0.0
-                    if (amount > 0) {
-                        onConfirm(amount)
+                    if (isValid) {
+                        onConfirm(enteredAmount)
                     }
                 },
-                enabled = amountText.toDoubleOrNull() ?: 0.0 > 0,
+                enabled = isValid,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)

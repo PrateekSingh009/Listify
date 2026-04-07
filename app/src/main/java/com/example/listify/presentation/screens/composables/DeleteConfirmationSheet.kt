@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 fun DeleteConfirmationSheet(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
+    title : String,
     groupName: String
 ) {
     ModalBottomSheet(
@@ -44,14 +45,14 @@ fun DeleteConfirmationSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Delete Group?",
+                text = "Delete \"$title\"?",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF1A1C1E)
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Are you sure you want to delete \"$groupName\"? This will also remove all items inside it.",
+                text = "Are you sure you want to delete \"$groupName\"?",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray,
                 textAlign = TextAlign.Center

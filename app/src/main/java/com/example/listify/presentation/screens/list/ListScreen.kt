@@ -1,9 +1,12 @@
 package com.example.listify.presentation.screens.list
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -29,8 +32,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCard
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.rounded.AddCircle
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -103,65 +108,139 @@ fun ListScreen(
         onAddTransaction = listViewModel::addTransaction,
         onSetTotalPlanned = listViewModel::setTotalPlanned,
         onClearTotalPlanned = listViewModel::clearTotalPlanned,
-        onUpdateCategoryTitle = listViewModel::updateCategoryTitle
+        onUpdateCategoryTitle = listViewModel::updateCategoryTitle,
+        onDeleteTransaction = listViewModel::deleteTransaction
     )
 }
 
 @Composable
-fun TransactionItem(transaction: Transaction) {
+fun TransactionItem(
+    transaction: Transaction,
+    isExpanded: Boolean,
+    onToggleExpand: (Long) -> Unit,
+    onEdit: (Transaction) -> Unit,
+    onDelete: (Transaction) -> Unit
+) {
     Card(
+        onClick = { onToggleExpand(transaction.id) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth()
-        ) {
-            Column(
+        Column {
+            Box(
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(end = 48.dp)
+                    .padding(16.dp)
+                    .fillMaxWidth()
             ) {
-                Text(
-                    text = transaction.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1C1E),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(8.dp)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(end = 48.dp)
                 ) {
                     Text(
-                        text = "₹${transaction.amount.toInt()}",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        style = TextStyle(fontSize = 20.sp),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        fontWeight = FontWeight.Medium
+                        text = transaction.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1A1C1E),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "₹${transaction.amount.toInt()}",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            style = TextStyle(fontSize = 20.sp),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
+
+                Text(
+                    text = formatToTimeOnly(transaction.updatedAt),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray.copy(alpha = 0.7f),
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                )
             }
 
-            Text(
-                text = formatToTimeOnly(transaction.updatedAt),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray.copy(alpha = 0.7f),
-                modifier = Modifier.align(Alignment.BottomEnd)
-            )
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(
+                    animationSpec = tween(durationMillis = 300)
+                ) + fadeIn(animationSpec = tween(durationMillis = 200)),
+                exit = shrinkVertically(
+                    animationSpec = tween(durationMillis = 250)
+                ) + fadeOut(animationSpec = tween(durationMillis = 200))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        color = Color(0xFFF1F3F4),
+                        shape = RoundedCornerShape(28.dp),
+                        shadowElevation = 2.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+
+                            IconButton(
+                                onClick = {  },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.AddCircle,
+                                    contentDescription = "Edit",
+                                    tint = Color(0xFF1A1C1E),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            IconButton(
+                                onClick = { onEdit(transaction) },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Edit,
+                                    contentDescription = "Edit",
+                                    tint = Color(0xFF1A1C1E),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            IconButton(
+                                onClick = { onDelete(transaction) },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.DeleteOutline,
+                                    contentDescription = "Delete",
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
-
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -174,7 +253,8 @@ fun ListScreenContent(
     onAddTransaction: (String, Double) -> Unit,
     onSetTotalPlanned: (Double) -> Unit,
     onClearTotalPlanned: () -> Unit,
-    onUpdateCategoryTitle: (String) -> Unit
+    onUpdateCategoryTitle: (String) -> Unit,
+    onDeleteTransaction: (Transaction) -> Unit
 ) {
 
     var sheetState by remember { mutableStateOf<AddSheetState>(AddSheetState.Hidden) }
@@ -189,6 +269,8 @@ fun ListScreenContent(
     var showMenu by remember { mutableStateOf(false) }
     var showTotalExpenseSheet by remember { mutableStateOf(false) }
     var editingTitle by remember { mutableStateOf(selectedGroup.title) }
+    var expandedTransactionId by remember { mutableStateOf<Long?>(null) }
+    var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
     val hasTotalPlanned = selectedGroup.totalPlanned > 0.0
     val remainingExpense = selectedGroup.totalPlanned - totalSpend
 
@@ -302,7 +384,7 @@ fun ListScreenContent(
             ) {
                 Column {
                     Text(
-                        text = "Total Spend",
+                        text = "Spent",
                         color = Color.White.copy(alpha = 0.7f),
                         style = MaterialTheme.typography.labelMedium
                     )
@@ -337,13 +419,13 @@ fun ListScreenContent(
                 ) {
                     HeaderStat(
                         modifier = Modifier.weight(1f),
-                        label = "Total Expense",
-                        value = selectedGroup.totalPlanned.toInt().toString()
+                        label = "Limit",
+                        value = "₹${selectedGroup.totalPlanned.toInt()}"
                     )
                     HeaderStat(
                         modifier = Modifier.weight(1f),
-                        label = "Remaining Expense",
-                        value = remainingExpense.toInt().toString()
+                        label = if (remainingExpense.toInt() >= 0) "Remaining" else "Over-Limit",
+                        value = remainingExpense.toInt().let{ if (it >= 0)  "₹${it}" else "₹${it*-1}"}
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -454,7 +536,19 @@ fun ListScreenContent(
                     }
 
                     items(transactionsForDate) { transaction ->
-                        TransactionItem(transaction)
+                        TransactionItem(
+                            transaction = transaction,
+                            isExpanded = expandedTransactionId == transaction.id,           // ← changed
+                            onToggleExpand = { id ->
+                                expandedTransactionId = if (expandedTransactionId == id) {
+                                    null          // click again → collapse
+                                } else {
+                                    id            // click different item → expand this one and collapse others
+                                }
+                            },
+                            onEdit = { /* TODO: Edit functionality in next step */ },
+                            onDelete = { transactionToDelete = it }
+                        )
                     }
                 }
             }
@@ -469,11 +563,24 @@ fun ListScreenContent(
                 showDeleteSheet = false
                 onDeleteCategory()
             },
+            title = "Category",
             groupName = selectedGroup.title
+        )
+    }
+    if (transactionToDelete != null) {
+        DeleteConfirmationSheet(
+            onDismiss = { transactionToDelete = null },
+            onConfirm = {
+                transactionToDelete?.let { onDeleteTransaction(it) }
+                transactionToDelete = null
+            },
+            title = "Transaction",
+            groupName = transactionToDelete!!.title
         )
     }
     if (showTotalExpenseSheet) {
         TotalExpenseSheet(
+            totalSpend = totalSpend,
             onDismiss = { showTotalExpenseSheet = false },
             onConfirm = { amount ->
                 onSetTotalPlanned(amount)
@@ -566,7 +673,8 @@ fun ListScreenPreview() {
         onAddTransaction = {} as (String, Double) -> Unit,
         onSetTotalPlanned = {},
         onClearTotalPlanned = {},
-        onUpdateCategoryTitle = {}
+        onUpdateCategoryTitle = {},
+        onDeleteTransaction = {}
     )
 }
 
