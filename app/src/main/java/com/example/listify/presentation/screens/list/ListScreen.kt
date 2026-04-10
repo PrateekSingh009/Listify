@@ -2,6 +2,7 @@ package com.example.listify.presentation.screens.list
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -10,6 +11,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,10 +35,17 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.rounded.AccountTree
 import androidx.compose.material.icons.rounded.AddCircle
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.ViewStream
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -49,6 +58,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -63,6 +75,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -73,16 +86,28 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Transaction
+import com.example.listify.domain.utils.formatToDateAndTime
 import com.example.listify.domain.utils.formatToDateOnly
 import com.example.listify.domain.utils.formatToTimeOnly
 import com.example.listify.presentation.screens.composables.AddClusterSheet
+import com.example.listify.presentation.screens.composables.ChoosingSheet
 import com.example.listify.presentation.screens.composables.DeleteConfirmationSheet
 import com.example.listify.presentation.screens.composables.EditCategorySheet
 import com.example.listify.presentation.screens.composables.HeaderStat
 import com.example.listify.presentation.screens.composables.SingleFieldSheet
 import com.example.listify.presentation.screens.composables.TotalExpenseSheet
-import com.example.listify.presentation.screens.home.ChoosingSheet
 import com.example.listify.presentation.screens.utils.AddSheetState
+import com.example.listify.presentation.screens.utils.extensions.toHeadlineCase
+
+
+enum class GroupMode { Date, Title }
+
+data class TitleGroup(
+    val title: String,
+    val total: Double,
+    val count: Int,
+    val transactions: List<Transaction>
+)
 
 @Composable
 fun ListScreen(
@@ -91,14 +116,8 @@ fun ListScreen(
 ) {
     val expenses by listViewModel.transactions.collectAsState()
     val selectedGroup by listViewModel.selectedCategory.collectAsState()
-    val groupedExpenses = remember(expenses) {
-        expenses
-            .sortedByDescending { it.updatedAt }
-            .groupBy { formatToDateOnly(it.updatedAt) }
-    }
     ListScreenContent(
         expenses = expenses,
-        groupedExpenses = groupedExpenses,
         selectedGroup = selectedGroup,
         onBackClick = onClick,
         onDeleteCategory =  {
@@ -142,7 +161,7 @@ fun TransactionItem(
                         .padding(end = 48.dp)
                 ) {
                     Text(
-                        text = transaction.title,
+                        text = transaction.title.toHeadlineCase(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1A1C1E),
@@ -153,15 +172,16 @@ fun TransactionItem(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(30.dp),
+                        color = Color(0xFF2C3E50),
+                        tonalElevation = 2.dp
                     ) {
                         Text(
                             text = "₹${transaction.amount.toInt()}",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = TextStyle(fontSize = 20.sp),
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            fontWeight = FontWeight.Medium
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White
                         )
                     }
                 }
@@ -246,7 +266,6 @@ fun TransactionItem(
 @Composable
 fun ListScreenContent(
     expenses: List<Transaction>,
-    groupedExpenses: Map<String, List<Transaction>>,
     selectedGroup: Category,
     onBackClick: () -> Unit,
     onDeleteCategory: () -> Unit,
@@ -257,11 +276,35 @@ fun ListScreenContent(
     onDeleteTransaction: (Transaction) -> Unit
 ) {
 
+    var groupMode by remember { mutableStateOf(GroupMode.Date) }
+
+    // ── Date-wise grouping (your original) ──────────────────────────────
+    val groupedByDate = remember(expenses) {
+        expenses
+            .sortedByDescending { it.updatedAt }
+            .groupBy { formatToDateOnly(it.updatedAt) }
+    }
+
+    // ── Title-wise grouping (new for Option C) ─────────────────────────
+    val groupedByTitle = remember(expenses) {
+        expenses
+            .groupBy { it.title }
+            .map { (title, list) ->
+                TitleGroup(
+                    title = title,
+                    total = list.sumOf { it.amount },
+                    count = list.size,
+                    transactions = list.sortedByDescending { it.updatedAt }
+                )
+            }
+            .sortedByDescending { it.total }
+    }
+
     var sheetState by remember { mutableStateOf<AddSheetState>(AddSheetState.Hidden) }
     val totalSpend = remember(expenses) { expenses.sumOf { it.amount } }
     val todayDate = formatToDateOnly(System.currentTimeMillis())
-    val todaySpend = remember(groupedExpenses) {
-        groupedExpenses[todayDate]?.sumOf { it.amount } ?: 0.0
+    val todaySpend = remember(groupedByDate) {
+        groupedByDate[todayDate]?.sumOf { it.amount } ?: 0.0
     }
     var transactionTitle by remember { mutableStateOf("") }
     var transactionAmount by remember { mutableStateOf("") }
@@ -269,7 +312,8 @@ fun ListScreenContent(
     var showMenu by remember { mutableStateOf(false) }
     var showTotalExpenseSheet by remember { mutableStateOf(false) }
     var editingTitle by remember { mutableStateOf(selectedGroup.title) }
-    var expandedTransactionId by remember { mutableStateOf<Long?>(null) }
+    // For expandable items (works in both modes)
+    var expandedTransactions by remember { mutableStateOf<Set<Long>>(emptySet()) }
     var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
     val hasTotalPlanned = selectedGroup.totalPlanned > 0.0
     val remainingExpense = selectedGroup.totalPlanned - totalSpend
@@ -300,7 +344,7 @@ fun ListScreenContent(
                 )
             }
             Text(
-                text = selectedGroup.title,
+                text = selectedGroup.title.toHeadlineCase(),
                 modifier =  Modifier.padding(start = 12.dp),
                 color = Color.White,
                 style = MaterialTheme.typography.headlineMedium,
@@ -367,6 +411,26 @@ fun ListScreenContent(
                             } else {
                                 showTotalExpenseSheet = true
                             }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "View Mode",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.GridView,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        },
+                        onClick = {
+                            showMenu = false
+                            sheetState = AddSheetState.Choosing
                         }
                     )
                 }
@@ -505,50 +569,72 @@ fun ListScreenContent(
                     .padding(top = 20.dp, start = 16.dp, end = 16.dp),
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
-                groupedExpenses.forEach { (date, transactionsForDate) ->
-                    stickyHeader {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = Color(0xFFF7F7F7)
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
+                when (groupMode) {
+                    GroupMode.Date -> {
+                        groupedByDate.forEach { (date, transactionsForDate) ->
+                            stickyHeader {
                                 Surface(
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.padding(vertical = 12.dp)
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = Color(0xFFF7F7F7)
                                 ) {
-                                    Text(
-                                        text = if (date == todayDate) "Today" else date,
-                                        modifier = Modifier.padding(
-                                            horizontal = 16.dp,
-                                            vertical = 4.dp
-                                        ),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = Color.DarkGray,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.secondaryContainer,
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.padding(vertical = 12.dp)
+                                        ) {
+                                            Text(
+                                                text = if (date == todayDate) "Today" else date,
+                                                modifier = Modifier.padding(
+                                                    horizontal = 16.dp,
+                                                    vertical = 4.dp
+                                                ),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                color = Color.DarkGray,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
                                 }
+                            }
+
+                            items(transactionsForDate) { transaction ->
+                                TransactionItem(
+                                    transaction = transaction,
+                                    isExpanded = expandedTransactions.contains(transaction.id),
+                                    onToggleExpand = { id ->
+                                        expandedTransactions = if (expandedTransactions.contains(id))
+                                            expandedTransactions - id else expandedTransactions + id
+                                    },
+                                    onEdit = { /* TODO: Edit functionality in next step */ },
+                                    onDelete = { transactionToDelete = it }
+                                )
                             }
                         }
                     }
-
-                    items(transactionsForDate) { transaction ->
-                        TransactionItem(
-                            transaction = transaction,
-                            isExpanded = expandedTransactionId == transaction.id,           // ← changed
-                            onToggleExpand = { id ->
-                                expandedTransactionId = if (expandedTransactionId == id) {
-                                    null          // click again → collapse
-                                } else {
-                                    id            // click different item → expand this one and collapse others
-                                }
-                            },
-                            onEdit = { /* TODO: Edit functionality in next step */ },
-                            onDelete = { transactionToDelete = it }
-                        )
+                    GroupMode.Title -> {
+                        // New Title-wise grouping
+                        items(groupedByTitle) { group ->
+                            TitleGroupItem(
+                                group = group,
+                                isExpanded = expandedTransactions.contains(group.transactions.firstOrNull()?.id ?: 0),
+                                onToggleExpand = { //id ->
+//                                    expandedTransactions = if (expandedTransactions.contains(id))
+//                                        expandedTransactions - id else expandedTransactions + id
+                                    val firstId = group.transactions.firstOrNull()?.id ?: 0L
+                                    expandedTransactions = if (expandedTransactions.contains(firstId)) {
+                                        expandedTransactions - firstId
+                                    } else {
+                                        expandedTransactions + firstId
+                                    }
+                                },
+                                onEdit = { /* TODO: connect later */ },
+                                onDelete = { /* TODO: connect later */ }
+                            )
+                        }
                     }
                 }
             }
@@ -603,6 +689,28 @@ fun ListScreenContent(
             ) { state ->
                 when (state) {
 
+                    is AddSheetState.Choosing -> ChoosingSheet(
+                        title = "Choose your desired View Mode",
+                        subtitle = "Sort by date or Group by Title",
+                        firstChoiceTitle = "Date",
+                        firstChoiceSubtitle = "Order of Date",
+                        secondChoiceTitle = "Title",
+                        secondChoiceSubtitle = "Group by Title",
+                        firstIcon = Icons.Rounded.CalendarMonth,
+                        secondIcon = Icons.Rounded.ViewStream,
+                        selectedChoice = when (groupMode) {
+                            GroupMode.Date -> 1
+                            GroupMode.Title -> 2
+                        },
+                        onChooseFirst = {
+                            groupMode = GroupMode.Date
+                            closeSheet()
+                        },
+                        onChooseSecond = {
+                            groupMode = GroupMode.Title
+                            closeSheet()
+                        }
+                    )
                     is AddSheetState.EditingCategory -> EditCategorySheet(
                         currentTitle = selectedGroup.title,
                         value = editingTitle,
@@ -659,14 +767,8 @@ fun ListScreenPreview() {
         )
     }
 
-    val groupedExpenses = remember {
-        mutableStateMapOf(
-            Pair(formatToDateOnly(System.currentTimeMillis()), expenses)
-        )
-    }
     ListScreenContent(
         expenses = expenses,
-        groupedExpenses = groupedExpenses,
         selectedGroup = Category(0, 0,"Grocery", System.currentTimeMillis()),
         onBackClick = {},
         onDeleteCategory = {},
@@ -678,4 +780,183 @@ fun ListScreenPreview() {
     )
 }
 
+@Composable
+fun TitleGroupItem(
+    group: TitleGroup,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
+    onEdit: (Transaction) -> Unit,
+    onDelete: (Transaction) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        shape = RoundedCornerShape(20.dp),           // softer, modern corners
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column {
+            // ── HEADER with smooth amount pill transition ─────────────────
+            AnimatedContent(
+                targetState = isExpanded,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(220)) togetherWith
+                            fadeOut(animationSpec = tween(180))
+                },
+                label = "AmountPillTransition"
+            ) { expanded ->
+                if (!expanded) {
+                    // COLLAPSED: Title + amount pill BELOW it (exactly as in your image)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onToggleExpand() }
+                            .padding(horizontal = 18.dp, vertical = 16.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = group.title.toHeadlineCase(),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF1A1C1E)
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(
+                                imageVector = Icons.Filled.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        // Amount pill (below title in collapsed state)
+                        Surface(
+                            shape = RoundedCornerShape(30.dp),
+                            color = Color(0xFF2C3E50),           // dark gray like your image
+                            tonalElevation = 2.dp
+                        ) {
+                            Text(
+                                text = "₹${group.total.toInt()}",
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White
+                            )
+                        }
+                    }
+                } else {
+                    // EXPANDED: Title + amount pill ON THE RIGHT (smooth move)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onToggleExpand() }
+                            .padding(horizontal = 18.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = group.title.toHeadlineCase(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF1A1C1E),
+                            modifier = Modifier.weight(1f)
+                        )
 
+                        // Amount pill now on the right
+                        Surface(
+                            shape = RoundedCornerShape(30.dp),
+                            color = Color(0xFF2C3E50),
+                            tonalElevation = 2.dp
+                        ) {
+                            Text(
+                                text = "₹${group.total.toInt()}",
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Icon(
+                            imageVector = Icons.Filled.KeyboardArrowUp,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+
+            // ── Count text (only visible when expanded) ───────────────────
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn(tween(200)) + expandVertically(tween(300)),
+                exit = fadeOut(tween(150))
+            ) {
+                Text(
+                    text = "${group.count} Transactions",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Gray,
+                    modifier = Modifier
+                        .padding(start = 18.dp, bottom = 4.dp)
+                )
+            }
+
+            // ── Expanded List with left vertical bar (exact as in image) ──
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(animationSpec = tween(320, easing = FastOutSlowInEasing)) + fadeIn(tween(220)),
+                exit = shrinkVertically(animationSpec = tween(280)) + fadeOut(tween(180))
+            ) {
+                Column {
+                    // Vertical black bar + list items
+                    Row {
+                        // Left vertical bar (exactly like your image)
+                        Box(
+                            modifier = Modifier
+                                .width(6.dp)
+                                .padding(start = 18.dp, top = 4.dp, bottom = 12.dp)
+                                .background(
+                                    color = Color.Black,
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                        )
+
+                        // Transaction list
+                        Column(modifier = Modifier.weight(1f)) {
+                            group.transactions.forEach { transaction ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 9.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Amount
+                                    Text(
+                                        text = "₹${transaction.amount.toInt()}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF1A1C1E)
+                                    )
+
+                                    Spacer(modifier = Modifier.weight(1f))
+
+                                    // Time
+                                    Text(
+                                        text = formatToDateAndTime(transaction.updatedAt),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+        }
+    }
+}

@@ -18,3 +18,8 @@ fun formatToTimeOnly(timestamp: Long): String {
     val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
     return sdf.format(Date(timestamp))
 }
+
+fun formatToDateAndTime(timestamp: Long): String {
+    val sdf = SimpleDateFormat("dd MMM hh:mm a", Locale.getDefault())
+    return sdf.format(Date(timestamp))
+}

@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -37,10 +36,12 @@ import com.example.listify.domain.model.Cluster
 import com.example.listify.domain.model.ClusterWithCategories
 import com.example.listify.domain.model.HomeScreenData
 import com.example.listify.presentation.screens.composables.AddClusterSheet
+import com.example.listify.presentation.screens.composables.ChoosingSheet
 import com.example.listify.presentation.screens.composables.HeaderStat
 import com.example.listify.presentation.screens.composables.PointedDivider
 import com.example.listify.presentation.screens.composables.SingleFieldSheet
 import com.example.listify.presentation.screens.utils.AddSheetState
+import com.example.listify.presentation.screens.utils.extensions.toHeadlineCase
 
 @Composable
 fun HomeScreen(
@@ -219,8 +220,17 @@ fun HomeScreenContent(
             ) { state ->
                 when (state) {
                     is AddSheetState.Choosing -> ChoosingSheet(
-                        onChooseCategory = { sheetState = AddSheetState.AddingGeneral },
-                        onChooseCluster = { sheetState = AddSheetState.AddingCluster }
+                        title = "What would you like to add?",
+                        subtitle = "Create a standalone list or a named group of lists.",
+                        firstChoiceTitle = "Category",
+                        firstChoiceSubtitle = "A single list",
+                        secondChoiceTitle = "Cluster",
+                        secondChoiceSubtitle = "Group of lists",
+                        firstIcon = Icons.Rounded.Category,
+                        secondIcon = Icons.Rounded.AccountTree,
+                        selectedChoice = 0,
+                        onChooseFirst = { sheetState = AddSheetState.AddingGeneral },
+                        onChooseSecond = { sheetState = AddSheetState.AddingCluster }
                     )
 
                     is AddSheetState.AddingGeneral -> SingleFieldSheet(
@@ -330,7 +340,7 @@ fun ClusterCategoryCard(category: Category, onClick: (Long) -> Unit) {
             }
             Spacer(Modifier.height(7.dp))
             Text(
-                text = category.title,
+                text = category.title.toHeadlineCase(),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -418,7 +428,7 @@ fun GeneralCategoryCard(category: Category, onClick: (Long) -> Unit) {
             }
             Spacer(Modifier.width(14.dp))
             Text(
-                text = category.title,
+                text = category.title.toHeadlineCase(),
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
@@ -456,81 +466,8 @@ fun EmptyState() {
 
 // ── Sheet composables ──────────────────────────────────────────────────────
 
-@Composable
-fun ChoosingSheet(onChooseCategory: () -> Unit, onChooseCluster: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 40.dp, top = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "What would you like to add?",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF1A1C1E)
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = "Create a standalone list or a named group of lists.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(28.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ChoiceCard(
-                modifier = Modifier.weight(1f),
-                icon = { Icon(Icons.Rounded.Category, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp)) },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                title = "Category",
-                subtitle = "A single list",
-                onClick = onChooseCategory
-            )
-            ChoiceCard(
-                modifier = Modifier.weight(1f),
-                icon = { Icon(Icons.Rounded.AccountTree, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(28.dp)) },
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                title = "Cluster",
-                subtitle = "Group of lists",
-                onClick = onChooseCluster
-            )
-        }
-    }
-}
 
-@Composable
-fun ChoiceCard(
-    modifier: Modifier = Modifier,
-    icon: @Composable () -> Unit,
-    containerColor: Color,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-) {
-    Card(
-        modifier = modifier
-            .height(120.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            icon()
-            Column {
-                Text(title, fontWeight = FontWeight.Bold, color = Color(0xFF1A1C1E))
-                Text(subtitle, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-            }
-        }
-    }
-}
+
 
 // ── Preview ────────────────────────────────────────────────────────────────
 
