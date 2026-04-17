@@ -12,6 +12,7 @@ import com.example.listify.domain.usecase.GetCategoryByIdUseCase
 import com.example.listify.domain.usecase.GetTransactionListUseCase
 import com.example.listify.domain.usecase.UpdateCategoryUseCase
 import com.example.listify.domain.usecase.UpdateTotalPlannedUseCase
+import com.example.listify.domain.usecase.UpdateTransactionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,7 +30,8 @@ class ListViewModel @Inject constructor(
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val deleteCategoryUseCase: DeleteCategoryUseCase,
     private val updateTotalPlannedUseCase: UpdateTotalPlannedUseCase,
-    private val updateCategoryUseCase: UpdateCategoryUseCase
+    private val updateCategoryUseCase: UpdateCategoryUseCase,
+    private val updateTransactionUseCase: UpdateTransactionUseCase
 ): ViewModel() {
     private val categoryId: Long = checkNotNull(savedStateHandle["categoryId"])
 
@@ -88,6 +90,19 @@ class ListViewModel @Inject constructor(
                 lastUpdated = System.currentTimeMillis()
             )
             updateCategoryUseCase(updated)
+                .onSuccess { _error.value = null }
+                .onFailure { _error.value = it.message }
+        }
+    }
+
+    fun updateTransaction(transaction: Transaction, newTitle: String, newAmount: Double) {
+        viewModelScope.launch {
+            val updated = transaction.copy(
+                title = newTitle,
+                amount = newAmount,
+                updatedAt = System.currentTimeMillis()
+            )
+            updateTransactionUseCase(updated)
                 .onSuccess { _error.value = null }
                 .onFailure { _error.value = it.message }
         }

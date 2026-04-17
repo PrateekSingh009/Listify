@@ -42,7 +42,7 @@ interface Dao {
     abstract suspend fun updateLastUpdated(categoryId: Long, lastUpdated: Long)
 
     @Update
-    suspend fun update(category: CategoryEntity)
+    suspend fun updateCategory(category: CategoryEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertCategory(categoryEntity: CategoryEntity): Long
@@ -65,6 +65,9 @@ interface Dao {
 
     @Delete
     abstract suspend fun deleteTransaction(transactionEntity: TransactionEntity)
+
+    @Update
+    suspend fun updateTransaction(transactionEntity: TransactionEntity)
 
     // ── Compound (atomic) ─────────────────────────────────────────
     /**

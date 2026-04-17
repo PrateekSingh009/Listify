@@ -97,6 +97,7 @@ import com.example.listify.presentation.screens.composables.AddClusterSheet
 import com.example.listify.presentation.screens.composables.ChoosingSheet
 import com.example.listify.presentation.screens.composables.DeleteConfirmationSheet
 import com.example.listify.presentation.screens.composables.EditCategorySheet
+import com.example.listify.presentation.screens.composables.EditTransactionSheet
 import com.example.listify.presentation.screens.composables.HeaderStat
 import com.example.listify.presentation.screens.composables.SingleFieldSheet
 import com.example.listify.presentation.screens.composables.TotalExpenseSheet
@@ -132,7 +133,8 @@ fun ListScreen(
         onSetTotalPlanned = listViewModel::setTotalPlanned,
         onClearTotalPlanned = listViewModel::clearTotalPlanned,
         onUpdateCategoryTitle = listViewModel::updateCategoryTitle,
-        onDeleteTransaction = listViewModel::deleteTransaction
+        onDeleteTransaction = listViewModel::deleteTransaction,
+        onUpdateTransaction = listViewModel::updateTransaction
     )
 }
 
@@ -282,7 +284,8 @@ fun ListScreenContent(
     onSetTotalPlanned: (Double) -> Unit,
     onClearTotalPlanned: () -> Unit,
     onUpdateCategoryTitle: (String) -> Unit,
-    onDeleteTransaction: (Transaction) -> Unit
+    onDeleteTransaction: (Transaction) -> Unit,
+    onUpdateTransaction: (Transaction, String, Double) -> Unit
 ) {
 
     var groupMode by remember { mutableStateOf(GroupMode.Date) }
@@ -326,6 +329,9 @@ fun ListScreenContent(
     var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
     val hasTotalPlanned = selectedGroup.totalPlanned > 0.0
     val remainingExpense = selectedGroup.totalPlanned - totalSpend
+
+    var showEditTransactionSheet by remember { mutableStateOf(false) }
+    var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
 
     fun closeSheet() {
         sheetState = AddSheetState.Hidden
@@ -613,7 +619,10 @@ fun ListScreenContent(
                             items(transactionsForDate) { transaction ->
                                 TransactionItem(
                                     transaction = transaction,
-                                    onEdit = { /* TODO: Edit functionality in next step */ },
+                                    onEdit = {
+                                        editingTransaction = it
+                                        showEditTransactionSheet = true
+                                    },
                                     onDelete = { transactionToDelete = it }
                                 )
                             }
@@ -673,6 +682,18 @@ fun ListScreenContent(
             onConfirm = { amount ->
                 onSetTotalPlanned(amount)
                 showTotalExpenseSheet = false
+            }
+        )
+    }
+    if (showEditTransactionSheet && editingTransaction != null) {
+        EditTransactionSheet(
+            transaction = editingTransaction!!,
+            onUpdate = { newTitle, newAmount ->
+                onUpdateTransaction(editingTransaction!!, newTitle, newAmount)
+            },
+            onDismiss = {
+                showEditTransactionSheet = false
+                editingTransaction = null
             }
         )
     }
@@ -778,7 +799,8 @@ fun ListScreenPreview() {
         onSetTotalPlanned = {},
         onClearTotalPlanned = {},
         onUpdateCategoryTitle = {},
-        onDeleteTransaction = {}
+        onDeleteTransaction = {},
+        onUpdateTransaction = {} as (Transaction,String, Double) -> Unit,
     )
 }
 

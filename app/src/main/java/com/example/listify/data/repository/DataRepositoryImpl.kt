@@ -61,7 +61,7 @@ class DataRepositoryImpl @Inject constructor(
         dao.deleteCategory(category.toEntity())
 
     override suspend fun updateCategory(category: Category) {
-        dao.update(category.toEntity())
+        dao.updateCategory(category.toEntity())
     }
 
     override suspend fun deleteCategoryAndCleanupCluster(category: Category) {
@@ -81,6 +81,10 @@ class DataRepositoryImpl @Inject constructor(
 
     override suspend fun insertTransaction(transaction: Transaction): Long =
         dao.insertTransaction(transaction.toEntity())
+
+    override suspend fun updateTransaction(transaction: Transaction) {
+        dao.updateTransaction(transaction.toEntity())
+    }
 
     override suspend fun deleteTransaction(transaction: Transaction) =
         dao.deleteTransaction(transaction.toEntity())

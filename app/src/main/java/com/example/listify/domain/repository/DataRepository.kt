@@ -35,4 +35,5 @@ interface DataRepository {
     // Transaction writes
     suspend fun insertTransaction(transaction: Transaction): Long
     suspend fun deleteTransaction(transaction: Transaction)
+    suspend fun updateTransaction(transaction: Transaction)
 }
