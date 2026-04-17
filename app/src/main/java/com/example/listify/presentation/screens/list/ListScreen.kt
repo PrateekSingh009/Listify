@@ -3,11 +3,14 @@ package com.example.listify.presentation.screens.list
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -32,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AddCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -135,13 +139,19 @@ fun ListScreen(
 @Composable
 fun TransactionItem(
     transaction: Transaction,
-    isExpanded: Boolean,
-    onToggleExpand: (Long) -> Unit,
     onEdit: (Transaction) -> Unit,
     onDelete: (Transaction) -> Unit
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
+
+    // Smooth rotation for the arrow
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (menuOpen) 180f else 0f,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "ArrowRotation"
+    )
+
     Card(
-        onClick = { onToggleExpand(transaction.id) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
@@ -149,119 +159,118 @@ fun TransactionItem(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column {
-            Box(
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // ── Main Content ─────────────────────────────────────────
+            Column(
                 modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth()
+                    .align(Alignment.CenterStart)
+                    .padding(end = 64.dp) // Extra padding to avoid menu overlap
             ) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(end = 48.dp)
+                Text(
+                    text = transaction.title.toHeadlineCase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1A1C1E),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(30.dp),
+                    color = Color(0xFF2C3E50),
+                    tonalElevation = 2.dp
                 ) {
                     Text(
-                        text = transaction.title.toHeadlineCase(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A1C1E),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        text = "₹${transaction.amount.toInt()}",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White
                     )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Surface(
-                        shape = RoundedCornerShape(30.dp),
-                        color = Color(0xFF2C3E50),
-                        tonalElevation = 2.dp
-                    ) {
-                        Text(
-                            text = "₹${transaction.amount.toInt()}",
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White
-                        )
-                    }
                 }
-
-                Text(
-                    text = formatToTimeOnly(transaction.updatedAt),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray.copy(alpha = 0.7f),
-                    modifier = Modifier.align(Alignment.BottomEnd)
-                )
             }
 
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(
-                    animationSpec = tween(durationMillis = 300)
-                ) + fadeIn(animationSpec = tween(durationMillis = 200)),
-                exit = shrinkVertically(
-                    animationSpec = tween(durationMillis = 250)
-                ) + fadeOut(animationSpec = tween(durationMillis = 200))
+            // ── Integrated Pill Menu (Strictly Top End) ──────────────
+            Surface(
+                modifier = Modifier.align(Alignment.TopEnd),
+                color = if (menuOpen) Color(0xFFF1F3F4) else Color.Transparent,
+                shape = RoundedCornerShape(28.dp),
+                shadowElevation = if (menuOpen) 3.dp else 0.dp
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(2.dp)
                 ) {
-                    Surface(
-                        color = Color(0xFFF1F3F4),
-                        shape = RoundedCornerShape(28.dp),
-                        shadowElevation = 2.dp
+                    AnimatedVisibility(
+                        visible = menuOpen,
+                        enter = slideInHorizontally(initialOffsetX = { it }) + fadeIn(),
+                        exit = slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
                     ) {
                         Row(
-                            modifier = Modifier.padding(4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier.padding(start = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
 
-                            IconButton(
-                                onClick = {  },
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.AddCircle,
-                                    contentDescription = "Edit",
-                                    tint = Color(0xFF1A1C1E),
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-
-                            IconButton(
-                                onClick = { onEdit(transaction) },
-                                modifier = Modifier.size(40.dp)
-                            ) {
+                            IconButton(onClick = {
+                                menuOpen = false
+                                onEdit(transaction)
+                            }, modifier = Modifier.size(32.dp)) {
                                 Icon(
                                     imageVector = Icons.Rounded.Edit,
                                     contentDescription = "Edit",
                                     tint = Color(0xFF1A1C1E),
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
 
-                            IconButton(
-                                onClick = { onDelete(transaction) },
-                                modifier = Modifier.size(40.dp)
-                            ) {
+                            IconButton(onClick = {
+                                menuOpen = false
+                                onDelete(transaction)
+                            }, modifier = Modifier.size(32.dp)) {
                                 Icon(
                                     imageVector = Icons.Filled.DeleteOutline,
                                     contentDescription = "Delete",
                                     tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
                     }
+
+                    // 4. Arrow Toggle (Always the "anchor" of the pill)
+                    IconButton(
+                        onClick = { menuOpen = !menuOpen },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                            contentDescription = "Toggle Menu",
+                            tint = Color(0xFF1A1C1E).copy(alpha = if (menuOpen) 0.8f else 0.3f),
+                            modifier = Modifier
+                                .size(12.dp)
+                                .graphicsLayer { rotationZ = arrowRotation }
+                        )
+                    }
                 }
             }
+
+            // ── Timestamp (Bottom Start) ─────────────────────────────
+            Text(
+                text = formatToTimeOnly(transaction.updatedAt),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray.copy(alpha = 0.5f),
+                modifier = Modifier.align(Alignment.BottomEnd)
+            )
         }
     }
 }
-
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ListScreenContent(
@@ -604,11 +613,6 @@ fun ListScreenContent(
                             items(transactionsForDate) { transaction ->
                                 TransactionItem(
                                     transaction = transaction,
-                                    isExpanded = expandedTransactions.contains(transaction.id),
-                                    onToggleExpand = { id ->
-                                        expandedTransactions = if (expandedTransactions.contains(id))
-                                            expandedTransactions - id else expandedTransactions + id
-                                    },
                                     onEdit = { /* TODO: Edit functionality in next step */ },
                                     onDelete = { transactionToDelete = it }
                                 )
@@ -621,9 +625,7 @@ fun ListScreenContent(
                             TitleGroupItem(
                                 group = group,
                                 isExpanded = expandedTransactions.contains(group.transactions.firstOrNull()?.id ?: 0),
-                                onToggleExpand = { //id ->
-//                                    expandedTransactions = if (expandedTransactions.contains(id))
-//                                        expandedTransactions - id else expandedTransactions + id
+                                onToggleExpand = {
                                     val firstId = group.transactions.firstOrNull()?.id ?: 0L
                                     expandedTransactions = if (expandedTransactions.contains(firstId)) {
                                         expandedTransactions - firstId
