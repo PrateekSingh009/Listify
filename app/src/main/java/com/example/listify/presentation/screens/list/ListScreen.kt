@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
@@ -44,10 +43,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.rounded.AccountTree
-import androidx.compose.material.icons.rounded.AddCircle
 import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ViewStream
 import androidx.compose.material3.Button
@@ -61,10 +57,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -72,7 +64,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -80,27 +71,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Transaction
 import com.example.listify.domain.utils.formatToDateAndTime
 import com.example.listify.domain.utils.formatToDateOnly
 import com.example.listify.domain.utils.formatToTimeOnly
-import com.example.listify.presentation.screens.composables.AddClusterSheet
 import com.example.listify.presentation.screens.composables.ChoosingSheet
 import com.example.listify.presentation.screens.composables.DeleteConfirmationSheet
 import com.example.listify.presentation.screens.composables.EditCategorySheet
-import com.example.listify.presentation.screens.composables.EditTransactionSheet
 import com.example.listify.presentation.screens.composables.HeaderStat
-import com.example.listify.presentation.screens.composables.SingleFieldSheet
 import com.example.listify.presentation.screens.composables.TotalExpenseSheet
+import com.example.listify.presentation.screens.composables.TransactionFormSheet
 import com.example.listify.presentation.screens.utils.AddSheetState
 import com.example.listify.presentation.screens.utils.extensions.toHeadlineCase
 
@@ -117,16 +103,16 @@ data class TitleGroup(
 @Composable
 fun ListScreen(
     listViewModel: ListViewModel = hiltViewModel(),
-    onClick: () -> Unit
+    onBackClick: () -> Unit
 ) {
     val expenses by listViewModel.transactions.collectAsState()
     val selectedGroup by listViewModel.selectedCategory.collectAsState()
     ListScreenContent(
         expenses = expenses,
         selectedGroup = selectedGroup,
-        onBackClick = onClick,
+        onBackClick = onBackClick,
         onDeleteCategory =  {
-            onClick()
+            onBackClick()
             listViewModel.deleteCategory(selectedGroup)
         },
         onAddTransaction = listViewModel::addTransaction,
@@ -312,6 +298,10 @@ fun ListScreenContent(
             .sortedByDescending { it.total }
     }
 
+    val uniqueTitles = remember(expenses) {
+        expenses.map { it.title }.distinct().sorted()
+    }
+
     var sheetState by remember { mutableStateOf<AddSheetState>(AddSheetState.Hidden) }
     val totalSpend = remember(expenses) { expenses.sumOf { it.amount } }
     val todayDate = formatToDateOnly(System.currentTimeMillis())
@@ -329,6 +319,8 @@ fun ListScreenContent(
     var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
     val hasTotalPlanned = selectedGroup.totalPlanned > 0.0
     val remainingExpense = selectedGroup.totalPlanned - totalSpend
+
+    var showAddTransactionSheet by remember { mutableStateOf(false) }
 
     var showEditTransactionSheet by remember { mutableStateOf(false) }
     var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
@@ -516,57 +508,83 @@ fun ListScreenContent(
                 shadowElevation = 16.dp,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Row(
+                Button(
+                    onClick = { showAddTransactionSheet = true },
                     modifier = Modifier
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .align(Alignment.CenterHorizontally),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2C3857))
                 ) {
-                    OutlinedTextField(
-                        value = transactionAmount,
-                        onValueChange = { transactionAmount = it },
-                        placeholder = { Text("0") },
-                        modifier = Modifier.width(80.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
+                    Icon(
+                        Icons.Filled.AddCard,
+                        null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedTextField(
-                        value = transactionTitle,
-                        onValueChange = { transactionTitle = it },
-                        placeholder = {
-                            Text(
-                                "Expense description...",
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            if (transactionTitle.isNotBlank() && transactionAmount != "0.0") {
-                                onAddTransaction(transactionTitle, transactionAmount.toDoubleOrNull() ?: 0.0)
-                                transactionTitle = ""
-                                transactionAmount = "0.0"
-                            }
-                        },
-                        modifier = Modifier.height(56.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.AddCard,
-                            contentDescription = "Add Expense",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text("Add Expense", fontWeight = FontWeight.Bold)
                 }
             }
+
+//            Surface(
+//                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+//                tonalElevation = 8.dp,
+//                shadowElevation = 16.dp,
+//                shape = RoundedCornerShape(12.dp)
+//            ) {
+//                Row(
+//                    modifier = Modifier
+//                        .padding(8.dp),
+//                    verticalAlignment = Alignment.CenterVertically
+//                ) {
+//                    OutlinedTextField(
+//                        value = transactionAmount,
+//                        onValueChange = { transactionAmount = it },
+//                        placeholder = { Text("0") },
+//                        modifier = Modifier.width(80.dp),
+//                        shape = RoundedCornerShape(12.dp),
+//                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+//                        singleLine = true
+//                    )
+//                    Spacer(modifier = Modifier.width(8.dp))
+//                    OutlinedTextField(
+//                        value = transactionTitle,
+//                        onValueChange = { transactionTitle = it },
+//                        placeholder = {
+//                            Text(
+//                                "Expense description...",
+//                                maxLines = 1,
+//                                overflow = TextOverflow.Ellipsis
+//                            )
+//                        },
+//                        modifier = Modifier.weight(1f),
+//                        shape = RoundedCornerShape(12.dp),
+//                        singleLine = true
+//                    )
+//                    Spacer(modifier = Modifier.width(8.dp))
+//                    Button(
+//                        onClick = {
+//                            if (transactionTitle.isNotBlank() && transactionAmount != "0.0") {
+//                                onAddTransaction(transactionTitle, transactionAmount.toDoubleOrNull() ?: 0.0)
+//                                transactionTitle = ""
+//                                transactionAmount = "0.0"
+//                            }
+//                        },
+//                        modifier = Modifier.height(56.dp),
+//                        shape = RoundedCornerShape(12.dp),
+//                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+//                    ) {
+//                        Icon(
+//                            imageVector = Icons.Filled.AddCard,
+//                            contentDescription = "Add Expense",
+//                            tint = Color.White,
+//                            modifier = Modifier.size(24.dp)
+//                        )
+//                    }
+//                }
+//            }
         }
         Spacer(Modifier.padding(top = 4.dp))
         Card(
@@ -685,13 +703,21 @@ fun ListScreenContent(
             }
         )
     }
-    if (showEditTransactionSheet && editingTransaction != null) {
-        EditTransactionSheet(
-            transaction = editingTransaction!!,
-            onUpdate = { newTitle, newAmount ->
-                onUpdateTransaction(editingTransaction!!, newTitle, newAmount)
+
+    if (showAddTransactionSheet || (showEditTransactionSheet && editingTransaction != null)) {
+        TransactionFormSheet(
+            isEditMode = showEditTransactionSheet,
+            initialTransaction = editingTransaction,
+            uniqueTitles = uniqueTitles,
+            onSave = { title, amount ->
+                if (showEditTransactionSheet && editingTransaction != null) {
+                    onUpdateTransaction(editingTransaction!!, title, amount)
+                } else {
+                    onAddTransaction(title, amount)
+                }
             },
             onDismiss = {
+                showAddTransactionSheet = false
                 showEditTransactionSheet = false
                 editingTransaction = null
             }
