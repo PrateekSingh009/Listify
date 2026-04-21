@@ -1,4 +1,4 @@
-package com.example.listify.presentation.screens.composables
+package com.example.listify.presentation.screens.composables.sheets
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.listify.presentation.screens.composables.ChoiceCard
 
 @Composable
 fun ChoosingSheet(
@@ -58,7 +59,14 @@ fun ChoosingSheet(
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ChoiceCard(
                 modifier = Modifier.weight(1f),
-                icon = { Icon(firstIcon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp)) },
+                icon = {
+                    Icon(
+                        firstIcon,
+                        null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 title = firstChoiceTitle,
                 subtitle = firstChoiceSubtitle,
@@ -67,7 +75,14 @@ fun ChoosingSheet(
             )
             ChoiceCard(
                 modifier = Modifier.weight(1f),
-                icon = { Icon(secondIcon, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(28.dp)) },
+                icon = {
+                    Icon(
+                        secondIcon,
+                        null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                },
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 title = secondChoiceTitle,
                 subtitle = secondChoiceSubtitle,

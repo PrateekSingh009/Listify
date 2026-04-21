@@ -1,4 +1,4 @@
-package com.example.listify.presentation.screens.composables
+package com.example.listify.presentation.screens.composables.sheets
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,7 +21,7 @@ import com.example.listify.domain.model.Transaction
 @Composable
 fun TransactionFormSheet(
     isEditMode: Boolean = false,
-    initialTransaction: Transaction? = null,   // only used in edit mode
+    initialTransaction: Transaction? = null,
     uniqueTitles: List<String>,
     onSave: (String, Double) -> Unit,
     onDismiss: () -> Unit
@@ -52,7 +52,6 @@ fun TransactionFormSheet(
             )
             Spacer(Modifier.height(20.dp))
 
-            // Amount Field (first - consistent with your preference)
             OutlinedTextField(
                 value = amountText,
                 onValueChange = { amountText = it },
@@ -66,7 +65,6 @@ fun TransactionFormSheet(
 
             Spacer(Modifier.height(12.dp))
 
-            // Title Field with Smart Autocomplete
             OutlinedTextField(
                 value = if (isExistingSelected) selectedExistingTitle!! else title,
                 onValueChange = {
@@ -87,7 +85,6 @@ fun TransactionFormSheet(
                 }
             )
 
-            // Suggestions (shown while typing)
             if (!isExistingSelected && title.isNotEmpty()) {
                 val filtered = uniqueTitles.filter { it.contains(title, ignoreCase = true) }
                 if (filtered.isNotEmpty()) {

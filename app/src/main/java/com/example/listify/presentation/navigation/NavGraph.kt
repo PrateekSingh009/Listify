@@ -29,7 +29,7 @@ fun NavGraph() {
         ) { backStackEntry ->
 //            val id = backStackEntry.arguments?.getLong("groupId") ?: return@composable
             ListScreen(
-                onClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() }
             )
         }
 
