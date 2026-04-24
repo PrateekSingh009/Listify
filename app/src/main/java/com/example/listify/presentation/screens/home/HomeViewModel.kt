@@ -85,15 +85,14 @@ class HomeViewModel @Inject constructor(
         _ignoredPaymentIds.value += paymentId
     }
 
-    fun addDetectedPaymentToCategory(payment: DetectedPayment, categoryId: Long) {
+    fun addDetectedPaymentToCategory(paymentId: Long, categoryId: Long,finalTitle: String,finalAmount:Double) {
         viewModelScope.launch {
             addTransactionToCategoryUseCase(
-                title = payment.merchant,
-                amount = payment.amount,
+                title = finalTitle,
+                amount = finalAmount,
                 categoryId = categoryId
             )
-            // Optionally mark as processed after adding
-            markDetectedPaymentAsProcessed(payment.id)
+            markDetectedPaymentAsProcessed(paymentId)
         }
     }
 

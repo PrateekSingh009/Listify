@@ -59,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -66,15 +67,16 @@ import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Transaction
 import com.example.listify.domain.model.TransactionTitleGroup
 import com.example.listify.domain.utils.formatToDateOnly
+import com.example.listify.presentation.screens.composables.HeaderStat
 import com.example.listify.presentation.screens.composables.sheets.ChoosingSheet
 import com.example.listify.presentation.screens.composables.sheets.DeleteConfirmationSheet
 import com.example.listify.presentation.screens.composables.sheets.EditCategorySheet
-import com.example.listify.presentation.screens.composables.HeaderStat
 import com.example.listify.presentation.screens.composables.sheets.TotalExpenseSheet
 import com.example.listify.presentation.screens.composables.sheets.TransactionFormSheet
 import com.example.listify.presentation.screens.utils.AddSheetState
 import com.example.listify.presentation.screens.utils.GroupMode
 import com.example.listify.presentation.screens.utils.extensions.toHeadlineCase
+
 
 @Composable
 fun ListScreen(
@@ -195,13 +197,13 @@ fun ListScreenContent(
             }
             Text(
                 text = selectedGroup.title.toHeadlineCase(),
-                modifier =  Modifier.padding(start = 12.dp),
+                modifier =  Modifier.padding(start = 12.dp).weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 color = Color.White,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-
-            Spacer(modifier = Modifier.weight(1f))
 
             IconButton(onClick = {
                 editingTitle = selectedGroup.title
@@ -289,7 +291,9 @@ fun ListScreenContent(
                 .background(MaterialTheme.colorScheme.primary)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
@@ -324,7 +328,9 @@ fun ListScreenContent(
             Spacer(modifier = Modifier.height(8.dp))
             if (hasTotalPlanned) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     HeaderStat(
@@ -342,7 +348,9 @@ fun ListScreenContent(
             }
 
             Surface(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
                 tonalElevation = 8.dp,
                 shadowElevation = 16.dp,
                 shape = RoundedCornerShape(12.dp)

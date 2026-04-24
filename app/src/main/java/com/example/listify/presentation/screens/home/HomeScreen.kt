@@ -49,7 +49,7 @@ fun HomeScreen(
 
     HomeScreenContent(
         data = homeScreenData,
-        unprocessedPayments= unprocessedPayments ,
+        unprocessedPayments = unprocessedPayments,
         ignoredIds = ignoredIds,
         onClick = onClick,
         onAddCategory = homeViewModel::addCategory,
@@ -68,7 +68,7 @@ fun HomeScreenContent(
     onAddCluster: (String, String) -> Unit,
     unprocessedPayments: List<DetectedPayment>,
     ignoredIds: Set<Long>,
-    onAddDetectedPaymentToCategory: (DetectedPayment,Long) -> Unit,
+    onAddDetectedPaymentToCategory: (Long, Long, String, Double) -> Unit,
     onIgnoreDetectedPayment: (Long) -> Unit
 ) {
     var sheetState by remember { mutableStateOf<AddSheetState>(AddSheetState.Hidden) }
@@ -225,11 +225,15 @@ fun HomeScreenContent(
 
     if (showCategorySelectionSheet != null) {
         SelectCategorySheet(
+            detectedPayment = showCategorySelectionSheet!!,
             homeScreenData = data,
-            onCategorySelected = { categoryId ->
-                showCategorySelectionSheet?.let { payment ->
-                    onAddDetectedPaymentToCategory(payment,categoryId)
-                }
+            onConfirm = { categoryId, finalTitle, finalAmount ->
+                onAddDetectedPaymentToCategory(
+                    showCategorySelectionSheet!!.id,
+                    categoryId,
+                    finalTitle,
+                    finalAmount
+                )
                 showCategorySelectionSheet = null
             },
             onDismiss = { showCategorySelectionSheet = null }
