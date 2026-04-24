@@ -1,4 +1,4 @@
-package com.example.listify.data.local
+package com.example.listify.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
@@ -21,7 +21,7 @@ interface Dao {
     @Query("SELECT * FROM clusters ORDER BY createdAt DESC")
     abstract fun getClustersWithCategories(): Flow<List<ClusterWithCategoriesEntity>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     abstract suspend fun insertCluster(clusterEntity: ClusterEntity): Long
 
     @Delete
@@ -44,7 +44,7 @@ interface Dao {
     @Update
     suspend fun updateCategory(category: CategoryEntity)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     abstract suspend fun insertCategory(categoryEntity: CategoryEntity): Long
 
     @Delete
@@ -60,7 +60,7 @@ interface Dao {
     @Query("SELECT * FROM transactions WHERE categoryId = :categoryId ORDER BY updatedAt DESC")
     abstract fun getTransactionsByCategory(categoryId: Long): Flow<List<TransactionEntity>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     abstract suspend fun insertTransaction(transactionEntity: TransactionEntity): Long
 
     @Delete

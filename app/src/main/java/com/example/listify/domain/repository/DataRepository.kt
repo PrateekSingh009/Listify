@@ -3,6 +3,7 @@ package com.example.listify.domain.repository
 import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Cluster
 import com.example.listify.domain.model.ClusterWithCategories
+import com.example.listify.domain.model.DetectedPayment
 import com.example.listify.domain.model.HomeScreenData
 import com.example.listify.domain.model.Transaction
 import kotlinx.coroutines.flow.Flow
@@ -36,4 +37,9 @@ interface DataRepository {
     suspend fun insertTransaction(transaction: Transaction): Long
     suspend fun deleteTransaction(transaction: Transaction)
     suspend fun updateTransaction(transaction: Transaction)
+
+    // Detected Payments
+    suspend fun saveDetectedPayment(payment: DetectedPayment)
+    fun getUnprocessedDetectedPayments(): Flow<List<DetectedPayment>>
+    suspend fun markDetectedPaymentAsProcessed(id: Long)
 }

@@ -3,7 +3,8 @@ package com.example.listify.di
 import android.content.Context
 import androidx.room.Room
 import com.example.listify.data.local.AppDatabase
-import com.example.listify.data.local.Dao
+import com.example.listify.data.local.dao.Dao
+import com.example.listify.data.local.dao.DetectedPaymentDao
 import com.example.listify.data.repository.DataRepositoryImpl
 import com.example.listify.domain.repository.DataRepository
 import com.example.listify.domain.usecase.*
@@ -25,11 +26,16 @@ object AppModule {
             .fallbackToDestructiveMigration()
             .build()
 
+
     @Provides
     fun provideDao(db: AppDatabase): Dao = db.dao()
 
     @Provides
-    fun provideDataRepository(dao: Dao): DataRepository = DataRepositoryImpl(dao)
+    fun provideDetectedPaymentDao(db: AppDatabase): DetectedPaymentDao =
+        db.detectedPaymentDao()
+
+    @Provides
+    fun provideDataRepository(dao: Dao,detectedPaymentDao: DetectedPaymentDao): DataRepository = DataRepositoryImpl(dao,detectedPaymentDao)
 
     // ── Home ──────────────────────────────────────────────────────
     @Provides

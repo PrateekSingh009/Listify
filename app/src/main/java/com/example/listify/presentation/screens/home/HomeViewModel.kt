@@ -1,17 +1,25 @@
 package com.example.listify.presentation.screens.home
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.listify.domain.model.Category
+import com.example.listify.domain.model.DetectedPayment
 import com.example.listify.domain.model.HomeScreenData
+import com.example.listify.domain.repository.DataRepository
 import com.example.listify.domain.usecase.AddCategoryUseCase
 import com.example.listify.domain.usecase.AddClusterUseCase
+import com.example.listify.domain.usecase.AddTransactionToCategoryUseCase
 import com.example.listify.domain.usecase.DeleteCategoryUseCase
 import com.example.listify.domain.usecase.GetHomeScreenDataUseCase
+import com.example.listify.domain.usecase.GetUnprocessedDetectedPaymentsUseCase
+import com.example.listify.domain.usecase.MarkDetectedPaymentAsProcessedUseCase
+import com.example.listify.domain.usecase.SaveDetectedPaymentUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,11 +29,19 @@ class HomeViewModel @Inject constructor(
     private val getHomeScreenDataUseCase: GetHomeScreenDataUseCase,
     private val addCategoryUseCase: AddCategoryUseCase,
     private val addClusterUseCase: AddClusterUseCase,
-    private val deleteCategoryUseCase: DeleteCategoryUseCase
+    private val deleteCategoryUseCase: DeleteCategoryUseCase,
+    private val getUnprocessedDetectedPaymentsUseCase: GetUnprocessedDetectedPaymentsUseCase,
+    private val saveDetectedPaymentUseCase: SaveDetectedPaymentUseCase,
+    private val markDetectedPaymentAsProcessedUseCase: MarkDetectedPaymentAsProcessedUseCase,
+    private val addTransactionToCategoryUseCase: AddTransactionToCategoryUseCase
 ) : ViewModel() {
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
+    private val _ignoredPaymentIds = MutableStateFlow<Set<Long>>(emptySet())
+
+    val ignoredPaymentIds: StateFlow<Set<Long>> = _ignoredPaymentIds.asStateFlow()
 
     val homeScreenData: StateFlow<HomeScreenData> = getHomeScreenDataUseCase()
         .stateIn(
@@ -57,6 +73,41 @@ class HomeViewModel @Inject constructor(
             deleteCategoryUseCase(category).onFailure {
                 _error.value = "Could not delete category"
             }
+        }
+    }
+
+    val unprocessedDetectedPayments: StateFlow<List<DetectedPayment>> =
+        getUnprocessedDetectedPaymentsUseCase()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
+
+
+    fun ignoreDetectedPayment(paymentId: Long) {
+        _ignoredPaymentIds.value += paymentId
+    }
+
+    fun addDetectedPaymentToCategory(payment: DetectedPayment, categoryId: Long) {
+        viewModelScope.launch {
+            addTransactionToCategoryUseCase(
+                title = payment.merchant,
+                amount = payment.amount,
+                categoryId = categoryId
+            )
+            // Optionally mark as processed after adding
+            markDetectedPaymentAsProcessed(payment.id)
+        }
+    }
+
+    fun markDetectedPaymentAsProcessed(id: Long) {
+        viewModelScope.launch {
+            markDetectedPaymentAsProcessedUseCase(id)
+            _ignoredPaymentIds.value -= id
+        }
+    }
+
+    // Optional: If you want to add the detected payment directly
+    fun addDetectedPayment(payment: DetectedPayment) {
+        viewModelScope.launch {
+            saveDetectedPaymentUseCase(payment)
         }
     }
 }

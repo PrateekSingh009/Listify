@@ -3,10 +3,12 @@ package com.example.listify.data.mapper
 import com.example.listify.data.local.entity.CategoryEntity
 import com.example.listify.data.local.entity.ClusterEntity
 import com.example.listify.data.local.entity.ClusterWithCategoriesEntity
+import com.example.listify.data.local.entity.DetectedPaymentEntity
 import com.example.listify.data.local.entity.TransactionEntity
 import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Cluster
 import com.example.listify.domain.model.ClusterWithCategories
+import com.example.listify.domain.model.DetectedPayment
 import com.example.listify.domain.model.Transaction
 
 fun TransactionEntity.toDomain() = Transaction(id, title, amount, updatedAt, categoryId)
@@ -30,4 +32,24 @@ fun Cluster.toEntity() = ClusterEntity(id, name, createdAt)
 fun ClusterWithCategoriesEntity.toDomain() = ClusterWithCategories(
     cluster = cluster.toDomain(),
     categories = categories.map { it.toDomain() }
+)
+
+fun DetectedPaymentEntity.toDomain() = DetectedPayment(
+    id = id,
+    amount = amount,
+    merchant = merchant,
+    appName = appName,
+    timestamp = timestamp,
+    rawText = rawText,
+    isProcessed = isProcessed
+)
+
+fun DetectedPayment.toEntity() = DetectedPaymentEntity(
+    id = id,
+    amount = amount,
+    merchant = merchant,
+    appName = appName,
+    timestamp = timestamp,
+    rawText = rawText,
+    isProcessed = isProcessed
 )

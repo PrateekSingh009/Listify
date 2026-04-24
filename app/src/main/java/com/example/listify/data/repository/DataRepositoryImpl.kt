@@ -1,11 +1,13 @@
 package com.example.listify.data.repository
 
-import com.example.listify.data.local.Dao
+import com.example.listify.data.local.dao.Dao
+import com.example.listify.data.local.dao.DetectedPaymentDao
 import com.example.listify.data.mapper.toDomain
 import com.example.listify.data.mapper.toEntity
 import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Cluster
 import com.example.listify.domain.model.ClusterWithCategories
+import com.example.listify.domain.model.DetectedPayment
 import com.example.listify.domain.model.HomeScreenData
 import com.example.listify.domain.model.Transaction
 import com.example.listify.domain.repository.DataRepository
@@ -15,7 +17,8 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class DataRepositoryImpl @Inject constructor(
-    private val dao: Dao
+    private val dao: Dao,
+    private val detectedPaymentDao: DetectedPaymentDao
 ) : DataRepository {
     /**
      * Combines 2 Room flows into a single HomeScreenData emission.
@@ -88,5 +91,19 @@ class DataRepositoryImpl @Inject constructor(
 
     override suspend fun deleteTransaction(transaction: Transaction) =
         dao.deleteTransaction(transaction.toEntity())
+
+
+    override suspend fun saveDetectedPayment(payment: DetectedPayment) {
+        detectedPaymentDao.insert(payment.toEntity())
+    }
+
+    override fun getUnprocessedDetectedPayments(): Flow<List<DetectedPayment>> {
+        return detectedPaymentDao.getUnprocessedPayments()
+            .map { list -> list.map { it.toDomain() } }
+    }
+
+    override suspend fun markDetectedPaymentAsProcessed(id: Long) {
+        detectedPaymentDao.markAsProcessed(id)
+    }
 
 }
