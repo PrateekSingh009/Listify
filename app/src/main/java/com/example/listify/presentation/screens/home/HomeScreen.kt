@@ -22,14 +22,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.listify.data.local.dao.DetectedPaymentDao
 import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Cluster
 import com.example.listify.domain.model.ClusterWithCategories
+import com.example.listify.domain.model.DetectedPayment
 import com.example.listify.domain.model.HomeScreenData
 import com.example.listify.presentation.screens.composables.sheets.AddClusterSheet
 import com.example.listify.presentation.screens.composables.sheets.ChoosingSheet
 import com.example.listify.presentation.screens.composables.HeaderStat
 import com.example.listify.presentation.screens.composables.PageEmptyState
+import com.example.listify.presentation.screens.composables.sheets.SelectCategorySheet
 import com.example.listify.presentation.screens.composables.utils.PointedDivider
 import com.example.listify.presentation.screens.composables.sheets.SingleFieldSheet
 import com.example.listify.presentation.screens.utils.AddSheetState
@@ -41,11 +44,18 @@ fun HomeScreen(
 ) {
     val homeScreenData by homeViewModel.homeScreenData.collectAsState()
 
+    val unprocessedPayments by homeViewModel.unprocessedDetectedPayments.collectAsState(initial = emptyList())
+    val ignoredIds by homeViewModel.ignoredPaymentIds.collectAsState()
+
     HomeScreenContent(
         data = homeScreenData,
+        unprocessedPayments = unprocessedPayments,
+        ignoredIds = ignoredIds,
         onClick = onClick,
         onAddCategory = homeViewModel::addCategory,
-        onAddCluster = homeViewModel::addCluster
+        onAddCluster = homeViewModel::addCluster,
+        onAddDetectedPaymentToCategory = homeViewModel::addDetectedPaymentToCategory,
+        onIgnoreDetectedPayment = homeViewModel::ignoreDetectedPayment
     )
 }
 
@@ -56,11 +66,19 @@ fun HomeScreenContent(
     onClick: (Long) -> Unit,
     onAddCategory: (String, Long?) -> Unit,
     onAddCluster: (String, String) -> Unit,
+    unprocessedPayments: List<DetectedPayment>,
+    ignoredIds: Set<Long>,
+    onAddDetectedPaymentToCategory: (Long, Long, String, Double) -> Unit,
+    onIgnoreDetectedPayment: (Long) -> Unit
 ) {
     var sheetState by remember { mutableStateOf<AddSheetState>(AddSheetState.Hidden) }
     var categoryTitle by remember { mutableStateOf("") }
     var clusterName by remember { mutableStateOf("") }
     var firstCategoryName by remember { mutableStateOf("") }
+
+    var showCategorySelectionSheet by remember { mutableStateOf<DetectedPayment?>(null) }
+
+    val visiblePayments = unprocessedPayments.filter { it.id !in ignoredIds }
 
     fun closeSheet() {
         sheetState = AddSheetState.Hidden
@@ -150,13 +168,25 @@ fun HomeScreenContent(
                     }
                 }
             }
-
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 contentPadding = PaddingValues(bottom = 96.dp)
             ) {
+                if (visiblePayments.isNotEmpty()) {
+                    item(key = "detected_payment") {
+                        DetectedPaymentPrompt(
+                            payment = visiblePayments.first(),
+                            onAdd = { payment ->
+                                showCategorySelectionSheet = payment
+                            },
+                            onIgnore = { payment ->
+                                onIgnoreDetectedPayment(payment.id)
+                            }
+                        )
+                    }
+                }
                 items(data.clusteredSections) { section ->
                     ClusterSection(
                         section = section,
@@ -191,6 +221,23 @@ fun HomeScreenContent(
                 }
             }
         }
+    }
+
+    if (showCategorySelectionSheet != null) {
+        SelectCategorySheet(
+            detectedPayment = showCategorySelectionSheet!!,
+            homeScreenData = data,
+            onConfirm = { categoryId, finalTitle, finalAmount ->
+                onAddDetectedPaymentToCategory(
+                    showCategorySelectionSheet!!.id,
+                    categoryId,
+                    finalTitle,
+                    finalAmount
+                )
+                showCategorySelectionSheet = null
+            },
+            onDismiss = { showCategorySelectionSheet = null }
+        )
     }
 
     if (sheetState !is AddSheetState.Hidden) {
@@ -266,32 +313,32 @@ fun HomeScreenContent(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    val data = HomeScreenData(
-        clusteredSections = listOf(
-            ClusterWithCategories(
-                cluster = Cluster(1, "Monthly Expense", System.currentTimeMillis()),
-                categories = listOf(
-                    Category(1, 1, "Apr", System.currentTimeMillis()),
-                    Category(2, 1, "Mar", System.currentTimeMillis()),
-                    Category(3, 1, "Feb", System.currentTimeMillis()),
-                )
-            ),
-            ClusterWithCategories(
-                cluster = Cluster(2, "Trip", System.currentTimeMillis()),
-                categories = listOf(
-                    Category(4, 2, "Noida", System.currentTimeMillis()),
-                    Category(5, 2, "Shimla", System.currentTimeMillis()),
-                )
-            )
-        ),
-        generalCategories = listOf(
-            Category(6, null, "Grocery", System.currentTimeMillis()),
-            Category(7, null, "Petrol", System.currentTimeMillis()),
-            Category(8, null, "Shopping", System.currentTimeMillis()),
-        )
-    )
-    HomeScreenContent(data = data, onClick = {}, onAddCategory = { _, _ -> }, onAddCluster = { _, _ -> })
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun HomeScreenPreview() {
+//    val data = HomeScreenData(
+//        clusteredSections = listOf(
+//            ClusterWithCategories(
+//                cluster = Cluster(1, "Monthly Expense", System.currentTimeMillis()),
+//                categories = listOf(
+//                    Category(1, 1, "Apr", System.currentTimeMillis()),
+//                    Category(2, 1, "Mar", System.currentTimeMillis()),
+//                    Category(3, 1, "Feb", System.currentTimeMillis()),
+//                )
+//            ),
+//            ClusterWithCategories(
+//                cluster = Cluster(2, "Trip", System.currentTimeMillis()),
+//                categories = listOf(
+//                    Category(4, 2, "Noida", System.currentTimeMillis()),
+//                    Category(5, 2, "Shimla", System.currentTimeMillis()),
+//                )
+//            )
+//        ),
+//        generalCategories = listOf(
+//            Category(6, null, "Grocery", System.currentTimeMillis()),
+//            Category(7, null, "Petrol", System.currentTimeMillis()),
+//            Category(8, null, "Shopping", System.currentTimeMillis()),
+//        )
+//    )
+//    HomeScreenContent(data = data, onClick = {}, onAddCategory = { _, _ -> }, onAddCluster = { _, _ -> })
+//}
