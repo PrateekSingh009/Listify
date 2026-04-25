@@ -78,4 +78,12 @@ object AppModule {
     @Provides
     fun provideUpdateTotalPlannedUseCase(repository: DataRepository) =
         UpdateTotalPlannedUseCase(repository)
+
+    @Provides
+    fun provideGetUnprocessedDetectedPaymentsUseCase(repository: DataRepository) =
+        GetUnprocessedDetectedPaymentsUseCase(repository)
+
+    @Provides
+    fun provideGetProcessedDetectedPaymentsUseCase(repository: DataRepository) =
+        GetProcessedDetectedPaymentsUseCase(repository)
 }

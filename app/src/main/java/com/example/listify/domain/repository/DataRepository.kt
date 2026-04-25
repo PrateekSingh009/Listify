@@ -41,5 +41,6 @@ interface DataRepository {
     // Detected Payments
     suspend fun saveDetectedPayment(payment: DetectedPayment)
     fun getUnprocessedDetectedPayments(): Flow<List<DetectedPayment>>
+    fun getProcessedDetectedPayments(): Flow<List<DetectedPayment>>
     suspend fun markDetectedPaymentAsProcessed(id: Long)
 }

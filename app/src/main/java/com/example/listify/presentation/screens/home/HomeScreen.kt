@@ -11,11 +11,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountBox
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.AccountTree
 import androidx.compose.material.icons.rounded.AddCard
 import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -40,7 +45,8 @@ import com.example.listify.presentation.screens.utils.AddSheetState
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel = hiltViewModel(),
-    onClick: (Long) -> Unit,
+    onListItemClick: (Long) -> Unit,
+    onNotificationClick: () -> Unit
 ) {
     val homeScreenData by homeViewModel.homeScreenData.collectAsState()
 
@@ -51,7 +57,8 @@ fun HomeScreen(
         data = homeScreenData,
         unprocessedPayments = unprocessedPayments,
         ignoredIds = ignoredIds,
-        onClick = onClick,
+        onClick = onListItemClick,
+        onNotificationClick = onNotificationClick,
         onAddCategory = homeViewModel::addCategory,
         onAddCluster = homeViewModel::addCluster,
         onAddDetectedPaymentToCategory = homeViewModel::addDetectedPaymentToCategory,
@@ -64,6 +71,7 @@ fun HomeScreen(
 fun HomeScreenContent(
     data: HomeScreenData,
     onClick: (Long) -> Unit,
+    onNotificationClick : () -> Unit,
     onAddCategory: (String, Long?) -> Unit,
     onAddCluster: (String, String) -> Unit,
     unprocessedPayments: List<DetectedPayment>,
@@ -107,19 +115,41 @@ fun HomeScreenContent(
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp, vertical = 28.dp)
                 ) {
-                    Text(
-                        text = "Listify",
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.65f),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = "Pencil it in",
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.displaySmall.copy(
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Listify",
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.65f),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = "Pencil it in",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                style = MaterialTheme.typography.displaySmall.copy(
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            )
+                        }
+                        IconButton(onClick = { onNotificationClick() }) {
+                            Icon(
+                                imageVector = Icons.Rounded.Notifications,
+                                contentDescription = "Notifications",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+
+                        IconButton(onClick = { /* TODO: Profile action */ }) {
+                            Icon(
+                                imageVector = Icons.Rounded.AccountCircle,
+                                contentDescription = "Profile",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(12.dp))
                     Button(
                         onClick = { sheetState = AddSheetState.Choosing },
@@ -312,7 +342,7 @@ fun HomeScreenContent(
         }
     }
 }
-
+//
 //@Preview(showBackground = true)
 //@Composable
 //fun HomeScreenPreview() {

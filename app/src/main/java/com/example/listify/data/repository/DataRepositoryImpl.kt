@@ -102,6 +102,11 @@ class DataRepositoryImpl @Inject constructor(
             .map { list -> list.map { it.toDomain() } }
     }
 
+    override fun getProcessedDetectedPayments(): Flow<List<DetectedPayment>> =
+        detectedPaymentDao.getProcessedPayments()
+            .map { list -> list.map { it.toDomain() } }
+
+
     override suspend fun markDetectedPaymentAsProcessed(id: Long) {
         detectedPaymentDao.markAsProcessed(id)
     }

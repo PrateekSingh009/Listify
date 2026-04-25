@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.listify.presentation.screens.home.HomeScreen
 import com.example.listify.presentation.screens.list.ListScreen
+import com.example.listify.presentation.screens.notification.NotificationScreen
 
 @Composable
 fun NavGraph() {
@@ -16,7 +17,13 @@ fun NavGraph() {
     NavHost(navController = navController,startDestination = "home") {
         composable("home") {
             HomeScreen(
-                onClick = { categoryId -> navController.navigate("list/$categoryId")}
+                onListItemClick = { categoryId -> navController.navigate("list/$categoryId") },
+                onNotificationClick = { navController.navigate("notifications") }
+            )
+        }
+        composable("notifications"){
+            NotificationScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
         composable(
