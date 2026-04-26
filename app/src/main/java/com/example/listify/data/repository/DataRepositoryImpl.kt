@@ -92,7 +92,7 @@ class DataRepositoryImpl @Inject constructor(
     override suspend fun deleteTransaction(transaction: Transaction) =
         dao.deleteTransaction(transaction.toEntity())
 
-
+    /*Detected Payment*/
     override suspend fun saveDetectedPayment(payment: DetectedPayment) {
         detectedPaymentDao.insert(payment.toEntity())
     }
@@ -109,6 +109,10 @@ class DataRepositoryImpl @Inject constructor(
 
     override suspend fun markDetectedPaymentAsProcessed(id: Long) {
         detectedPaymentDao.markAsProcessed(id)
+    }
+
+    override suspend fun deleteDetectedPayment(detectedPayment: DetectedPayment) {
+        detectedPaymentDao.deleteDetectedPayment(detectedPayment.toEntity())
     }
 
 }
