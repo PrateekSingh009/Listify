@@ -63,10 +63,14 @@ class PaymentNotificationListenerService : NotificationListenerService() {
         }
     }
 
-    // Simple but effective regex-based parsers (you can improve these later)
     private fun extractAmount(text: String): Double? {
-        val regex = Regex("""(?:₹|Rs\.?|INR)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)""")
-        return regex.find(text)?.groupValues?.get(1)?.replace(",", "")?.toDoubleOrNull()
+        // This regex looks for currency symbols, then grabs all digits, commas, and dots that follow.
+        val regex = Regex("""(?:₹|Rs\.?|INR)\s*([\d,]+(?:\.\d+)?)""")
+
+        val matchResult = regex.find(text)
+        return matchResult?.groupValues?.get(1)
+            ?.replace(",", "") // Remove commas for Indian or International formats
+            ?.toDoubleOrNull()
     }
 
     private fun extractMerchant(text: String, title: String): String? {

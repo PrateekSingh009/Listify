@@ -22,7 +22,7 @@ interface DetectedPaymentDao {
         ORDER BY timestamp DESC
         LIMIT 1
     """)
-    fun getLatestActivePayment(): Flow<List<DetectedPaymentEntity>>
+    fun getLatestUnprocessedPayment(): Flow<List<DetectedPaymentEntity>>
 
     @Query("SELECT * FROM detected_payments WHERE isProcessed = 0 ORDER BY timestamp DESC")
     fun getUnprocessedPayments(): Flow<List<DetectedPaymentEntity>>

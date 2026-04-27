@@ -12,6 +12,7 @@ import com.example.listify.domain.usecase.AddClusterUseCase
 import com.example.listify.domain.usecase.AddTransactionToCategoryUseCase
 import com.example.listify.domain.usecase.DeleteCategoryUseCase
 import com.example.listify.domain.usecase.GetHomeScreenDataUseCase
+import com.example.listify.domain.usecase.GetLatestActivePaymentUseCase
 import com.example.listify.domain.usecase.GetUnprocessedDetectedPaymentsUseCase
 import com.example.listify.domain.usecase.MarkDetectedPaymentAsProcessedUseCase
 import com.example.listify.domain.usecase.SaveDetectedPaymentUseCase
@@ -20,6 +21,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,6 +33,7 @@ class HomeViewModel @Inject constructor(
     private val addCategoryUseCase: AddCategoryUseCase,
     private val addClusterUseCase: AddClusterUseCase,
     private val deleteCategoryUseCase: DeleteCategoryUseCase,
+    private val getLatestActivePaymentUseCase: GetLatestActivePaymentUseCase,
     private val getUnprocessedDetectedPaymentsUseCase: GetUnprocessedDetectedPaymentsUseCase,
     private val saveDetectedPaymentUseCase: SaveDetectedPaymentUseCase,
     private val markDetectedPaymentAsProcessedUseCase: MarkDetectedPaymentAsProcessedUseCase,
@@ -39,10 +43,6 @@ class HomeViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    private val _ignoredPaymentIds = MutableStateFlow<Set<Long>>(emptySet())
-
-    val ignoredPaymentIds: StateFlow<Set<Long>> = _ignoredPaymentIds.asStateFlow()
-
     val homeScreenData: StateFlow<HomeScreenData> = getHomeScreenDataUseCase()
         .stateIn(
             scope = viewModelScope,
@@ -50,7 +50,28 @@ class HomeViewModel @Inject constructor(
             initialValue = HomeScreenData(emptyList(), emptyList())
         )
 
-    /** Adds a general category (clusterId = null) or one inside an existing cluster. */
+    val latestUnprocessedPayment: StateFlow<DetectedPayment?> = getLatestActivePaymentUseCase()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), null)
+
+
+    private val _activePrompt = MutableStateFlow<DetectedPayment?>(null)
+    val activePrompt: StateFlow<DetectedPayment?> = _activePrompt.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            getLatestActivePaymentUseCase()
+                .collect { payment ->
+                    if (_activePrompt.value == null && payment != null) {
+                        _activePrompt.value = payment
+                    }
+                }
+        }
+    }
+
+    fun ignorePrompt() {
+        _activePrompt.value = null
+    }
+
     fun addCategory(title: String, clusterId: Long? = null) {
         viewModelScope.launch {
             addCategoryUseCase(title, clusterId)
@@ -59,7 +80,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Creates a new cluster + its first category in one atomic write. */
     fun addCluster(clusterName: String, firstCategoryName: String) {
         viewModelScope.launch {
             addClusterUseCase(clusterName, firstCategoryName)
@@ -81,10 +101,6 @@ class HomeViewModel @Inject constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
 
-    fun ignoreDetectedPayment(paymentId: Long) {
-        _ignoredPaymentIds.value += paymentId
-    }
-
     fun addDetectedPaymentToCategory(paymentId: Long, categoryId: Long,finalTitle: String,finalAmount:Double) {
         viewModelScope.launch {
             addTransactionToCategoryUseCase(
@@ -93,17 +109,17 @@ class HomeViewModel @Inject constructor(
                 categoryId = categoryId
             )
             markDetectedPaymentAsProcessed(paymentId)
+            _activePrompt.value = null
         }
     }
 
     fun markDetectedPaymentAsProcessed(id: Long) {
         viewModelScope.launch {
             markDetectedPaymentAsProcessedUseCase(id)
-            _ignoredPaymentIds.value -= id
+            _activePrompt.value = null
         }
     }
 
-    // Optional: If you want to add the detected payment directly
     fun addDetectedPayment(payment: DetectedPayment) {
         viewModelScope.launch {
             saveDetectedPaymentUseCase(payment)

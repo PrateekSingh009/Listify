@@ -50,19 +50,17 @@ fun HomeScreen(
 ) {
     val homeScreenData by homeViewModel.homeScreenData.collectAsState()
 
-    val unprocessedPayments by homeViewModel.unprocessedDetectedPayments.collectAsState(initial = emptyList())
-    val ignoredIds by homeViewModel.ignoredPaymentIds.collectAsState()
+    val activePrompt by homeViewModel.activePrompt.collectAsState()
 
     HomeScreenContent(
         data = homeScreenData,
-        unprocessedPayments = unprocessedPayments,
-        ignoredIds = ignoredIds,
         onClick = onListItemClick,
+        activePrompt = activePrompt,
         onNotificationClick = onNotificationClick,
         onAddCategory = homeViewModel::addCategory,
         onAddCluster = homeViewModel::addCluster,
-        onAddDetectedPaymentToCategory = homeViewModel::addDetectedPaymentToCategory,
-        onIgnoreDetectedPayment = homeViewModel::ignoreDetectedPayment
+        onIgnorePrompt = homeViewModel::ignorePrompt,
+        onAddDetectedPaymentToCategory = homeViewModel::addDetectedPaymentToCategory
     )
 }
 
@@ -71,13 +69,12 @@ fun HomeScreen(
 fun HomeScreenContent(
     data: HomeScreenData,
     onClick: (Long) -> Unit,
+    activePrompt: DetectedPayment?,
     onNotificationClick : () -> Unit,
     onAddCategory: (String, Long?) -> Unit,
     onAddCluster: (String, String) -> Unit,
-    unprocessedPayments: List<DetectedPayment>,
-    ignoredIds: Set<Long>,
+    onIgnorePrompt: () -> Unit,
     onAddDetectedPaymentToCategory: (Long, Long, String, Double) -> Unit,
-    onIgnoreDetectedPayment: (Long) -> Unit
 ) {
     var sheetState by remember { mutableStateOf<AddSheetState>(AddSheetState.Hidden) }
     var categoryTitle by remember { mutableStateOf("") }
@@ -85,8 +82,6 @@ fun HomeScreenContent(
     var firstCategoryName by remember { mutableStateOf("") }
 
     var showCategorySelectionSheet by remember { mutableStateOf<DetectedPayment?>(null) }
-
-    val visiblePayments = unprocessedPayments.filter { it.id !in ignoredIds }
 
     fun closeSheet() {
         sheetState = AddSheetState.Hidden
@@ -204,16 +199,13 @@ fun HomeScreenContent(
                     .weight(1f),
                 contentPadding = PaddingValues(bottom = 96.dp)
             ) {
-                if (visiblePayments.isNotEmpty()) {
-                    item(key = "detected_payment") {
+
+                if (activePrompt != null) {
+                    item(key = "prompt_${activePrompt.id}") {
                         DetectedPaymentPrompt(
-                            payment = visiblePayments.first(),
-                            onAdd = { payment ->
-                                showCategorySelectionSheet = payment
-                            },
-                            onIgnore = { payment ->
-                                onIgnoreDetectedPayment(payment.id)
-                            }
+                            payment = activePrompt,
+                            onAdd = { showCategorySelectionSheet = it },
+                            onIgnore = { onIgnorePrompt() }
                         )
                     }
                 }

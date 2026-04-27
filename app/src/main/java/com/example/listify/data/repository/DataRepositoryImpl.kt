@@ -115,4 +115,8 @@ class DataRepositoryImpl @Inject constructor(
         detectedPaymentDao.deleteDetectedPayment(detectedPayment.toEntity())
     }
 
+    override fun getLatestUnprocessedPayment(): Flow<DetectedPayment?> =
+        detectedPaymentDao.getLatestUnprocessedPayment()
+            .map { it.firstOrNull()?.toDomain() }
+
 }
