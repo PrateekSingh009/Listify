@@ -1,36 +1,39 @@
 package com.example.listify.presentation.screens.home
 
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AccountBox
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.AccountTree
 import androidx.compose.material.icons.rounded.AddCard
 import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults.cardColors
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.listify.data.local.dao.DetectedPaymentDao
-import com.example.listify.domain.model.Category
-import com.example.listify.domain.model.Cluster
-import com.example.listify.domain.model.ClusterWithCategories
 import com.example.listify.domain.model.DetectedPayment
 import com.example.listify.domain.model.HomeScreenData
 import com.example.listify.presentation.screens.composables.sheets.AddClusterSheet
@@ -102,7 +105,7 @@ fun HomeScreenContent(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+                colors = cardColors(containerColor = colorScheme.primary),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
                 Column(
@@ -117,13 +120,13 @@ fun HomeScreenContent(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Listify",
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.65f),
+                                color = colorScheme.onPrimary.copy(alpha = 0.65f),
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
                                 text = "Pencil it in",
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = colorScheme.onPrimary,
                                 style = MaterialTheme.typography.displaySmall.copy(
                                     fontWeight = FontWeight.ExtraBold
                                 )
@@ -131,9 +134,9 @@ fun HomeScreenContent(
                         }
                         IconButton(onClick = { onNotificationClick() }) {
                             Icon(
-                                imageVector = Icons.Rounded.Notifications,
+                                imageVector =  if (activePrompt != null) Icons.Rounded.NotificationsActive else Icons.Rounded.Notifications,
                                 contentDescription = "Notifications",
-                                tint = MaterialTheme.colorScheme.onPrimary
+                                tint = colorScheme.onPrimary
                             )
                         }
 
@@ -141,7 +144,7 @@ fun HomeScreenContent(
                             Icon(
                                 imageVector = Icons.Rounded.AccountCircle,
                                 contentDescription = "Profile",
-                                tint = MaterialTheme.colorScheme.onPrimary
+                                tint = colorScheme.onPrimary
                             )
                         }
                     }
@@ -153,8 +156,8 @@ fun HomeScreenContent(
                             .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.onPrimary,
-                            contentColor = MaterialTheme.colorScheme.primary
+                            containerColor = colorScheme.onPrimary,
+                            contentColor = colorScheme.primary
                         ),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                     ) {
@@ -199,6 +202,10 @@ fun HomeScreenContent(
                     .weight(1f),
                 contentPadding = PaddingValues(bottom = 96.dp)
             ) {
+                item(
+                    "notification_message",
+                    content = { NotificationPermissionSection() },
+                )
 
                 if (activePrompt != null) {
                     item(key = "prompt_${activePrompt.id}") {
@@ -231,7 +238,7 @@ fun HomeScreenContent(
                                 top = 24.dp,
                                 bottom = 12.dp
                             ),
-                            color = MaterialTheme.colorScheme.outlineVariant
+                            color = colorScheme.outlineVariant
                         )
                     }
                     items(data.generalCategories) { category ->
@@ -334,33 +341,62 @@ fun HomeScreenContent(
         }
     }
 }
-//
-//@Preview(showBackground = true)
-//@Composable
-//fun HomeScreenPreview() {
-//    val data = HomeScreenData(
-//        clusteredSections = listOf(
-//            ClusterWithCategories(
-//                cluster = Cluster(1, "Monthly Expense", System.currentTimeMillis()),
-//                categories = listOf(
-//                    Category(1, 1, "Apr", System.currentTimeMillis()),
-//                    Category(2, 1, "Mar", System.currentTimeMillis()),
-//                    Category(3, 1, "Feb", System.currentTimeMillis()),
-//                )
-//            ),
-//            ClusterWithCategories(
-//                cluster = Cluster(2, "Trip", System.currentTimeMillis()),
-//                categories = listOf(
-//                    Category(4, 2, "Noida", System.currentTimeMillis()),
-//                    Category(5, 2, "Shimla", System.currentTimeMillis()),
-//                )
-//            )
-//        ),
-//        generalCategories = listOf(
-//            Category(6, null, "Grocery", System.currentTimeMillis()),
-//            Category(7, null, "Petrol", System.currentTimeMillis()),
-//            Category(8, null, "Shopping", System.currentTimeMillis()),
-//        )
-//    )
-//    HomeScreenContent(data = data, onClick = {}, onAddCategory = { _, _ -> }, onAddCluster = { _, _ -> })
-//}
+
+fun isNotificationServiceEnabled(context: Context): Boolean {
+    val packageNames = NotificationManagerCompat.getEnabledListenerPackages(context)
+    return packageNames.contains(context.packageName)
+}
+
+@Composable
+fun NotificationPermissionSection() {
+    val context = LocalContext.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+    var isEnabled by remember {
+        mutableStateOf(isNotificationServiceEnabled(context))
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                isEnabled = isNotificationServiceEnabled(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    if (!isEnabled) {
+        Card(
+            colors = cardColors(
+                containerColor = colorScheme.errorContainer
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .clickable {
+                    val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                    context.startActivity(intent)
+                }
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Warning,
+                    contentDescription = null,
+                    tint = colorScheme.error
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = "Automatic tracking is off. Tap to enable access.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colorScheme.onErrorContainer
+                )
+            }
+        }
+    }
+}

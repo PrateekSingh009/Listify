@@ -7,36 +7,33 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import com.example.listify.domain.model.HomeScreenData
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.listify.domain.model.DetectedPayment
+import com.example.listify.domain.model.HomeScreenData
 import com.example.listify.presentation.screens.utils.extensions.toHeadlineCase
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SelectCategorySheet(
-    detectedPayment: com.example.listify.domain.model.DetectedPayment,
+    detectedPayment: DetectedPayment,
     homeScreenData: HomeScreenData,
     onConfirm: (Long, String, Double) -> Unit,
     onDismiss: () -> Unit
@@ -45,6 +42,9 @@ fun SelectCategorySheet(
     var editableTitle by remember { mutableStateOf(detectedPayment.merchant) }
     var editableAmount by remember { mutableStateOf(detectedPayment.amount.toString()) }
 
+    val hasAnyCategory = homeScreenData.clusteredSections.isNotEmpty() ||
+            homeScreenData.generalCategories.isNotEmpty()
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = Color.White,
@@ -52,58 +52,31 @@ fun SelectCategorySheet(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(
-                start = 24.dp,
-                end = 24.dp,
-                top = 8.dp,
-                bottom = 48.dp
-            )
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 48.dp)
         ) {
             item(key = "sheet_title") {
                 Text(
-                    text = if (selectedCategoryId == null) "Select Category" else "Verify Details",
+                    text = if (selectedCategoryId == null) "Where to add this payment?" else "Verify & Add",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF1A1C1E)
                 )
-                Spacer(Modifier.height(16.dp))
-            }
-            itemsIndexed(
-                items = homeScreenData.clusteredSections,
-                key = { _, section -> "cluster_${section.cluster.id}" }
-            ) { _, section ->
-                CategoryGroup(
-                    title = section.cluster.name.uppercase(),
-                    categories = section.categories,
-                    selectedId = selectedCategoryId,
-                    onCategorySelected = { selectedCategoryId = it }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "₹${detectedPayment.amount.toInt()} • ${detectedPayment.merchant}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(20.dp))
             }
 
-            if (homeScreenData.generalCategories.isNotEmpty()) {
-                item(key = "general_group") {
-                    CategoryGroup(
-                        title = "GENERAL",
-                        categories = homeScreenData.generalCategories,
-                        selectedId = selectedCategoryId,
-                        onCategorySelected = { selectedCategoryId = it }
-                    )
-                    Spacer(Modifier.height(16.dp))
-                }
-            }
             item(key = "edit_fields") {
                 AnimatedVisibility(
                     visible = selectedCategoryId != null,
-                    enter = expandVertically(
-                        animationSpec = tween(300, easing = FastOutSlowInEasing)
-                    ) + fadeIn(tween(220)),
-                    exit = shrinkVertically(
-                        animationSpec = tween(250)
-                    ) + fadeOut(tween(180))
+                    enter = expandVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) + fadeIn(tween(220)),
+                    exit = shrinkVertically(animationSpec = tween(250)) + fadeOut(tween(180))
                 ) {
                     Column {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
                         OutlinedTextField(
                             value = editableTitle,
@@ -123,9 +96,7 @@ fun SelectCategorySheet(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number
-                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             prefix = { Text("₹") }
                         )
 
@@ -147,6 +118,58 @@ fun SelectCategorySheet(
                         ) {
                             Text("Add Transaction", fontWeight = FontWeight.Bold)
                         }
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                    }
+                }
+            }
+
+            if (!hasAnyCategory) {
+                // Empty state when no categories exist
+                item(key = "empty_state") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "No categories yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Create your first category to add this payment",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Spacer(Modifier.height(24.dp))
+                    }
+                }
+            } else {
+                itemsIndexed(
+                    items = homeScreenData.clusteredSections,
+                    key = { _, section -> "cluster_${section.cluster.id}" }
+                ) { _, section ->
+                    CategoryGroup(
+                        title = section.cluster.name.uppercase(),
+                        categories = section.categories,
+                        selectedId = selectedCategoryId,
+                        onCategorySelected = { selectedCategoryId = it }
+                    )
+                    Spacer(Modifier.height(16.dp))
+                }
+
+                if (homeScreenData.generalCategories.isNotEmpty()) {
+                    item(key = "general_group") {
+                        CategoryGroup(
+                            title = "GENERAL",
+                            categories = homeScreenData.generalCategories,
+                            selectedId = selectedCategoryId,
+                            onCategorySelected = { selectedCategoryId = it }
+                        )
+                        Spacer(Modifier.height(16.dp))
                     }
                 }
             }
