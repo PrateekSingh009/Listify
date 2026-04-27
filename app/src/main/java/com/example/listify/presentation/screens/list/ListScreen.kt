@@ -1,5 +1,9 @@
 package com.example.listify.presentation.screens.list
 
+import android.content.Context
+import android.content.Intent
+import android.graphics.pdf.PdfDocument
+import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -31,6 +35,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ViewStream
@@ -54,14 +59,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import android.graphics.Paint
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.listify.domain.model.Category
 import com.example.listify.domain.model.Transaction
@@ -76,6 +85,14 @@ import com.example.listify.presentation.screens.composables.sheets.TransactionFo
 import com.example.listify.presentation.screens.utils.AddSheetState
 import com.example.listify.presentation.screens.utils.GroupMode
 import com.example.listify.presentation.screens.utils.extensions.toHeadlineCase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 @Composable
@@ -85,6 +102,9 @@ fun ListScreen(
 ) {
     val expenses by listViewModel.transactions.collectAsState()
     val selectedGroup by listViewModel.selectedCategory.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     ListScreenContent(
         expenses = expenses,
         selectedGroup = selectedGroup,
@@ -98,7 +118,12 @@ fun ListScreen(
         onClearTotalPlanned = listViewModel::clearTotalPlanned,
         onUpdateCategoryTitle = listViewModel::updateCategoryTitle,
         onDeleteTransaction = listViewModel::deleteTransaction,
-        onUpdateTransaction = listViewModel::updateTransaction
+        onUpdateTransaction = listViewModel::updateTransaction,
+        onShareClick = {
+            scope.launch {
+                generateAndSharePdf(context, selectedGroup.title, expenses)
+            }
+        }
     )
 }
 
@@ -114,7 +139,8 @@ fun ListScreenContent(
     onClearTotalPlanned: () -> Unit,
     onUpdateCategoryTitle: (String) -> Unit,
     onDeleteTransaction: (Transaction) -> Unit,
-    onUpdateTransaction: (Transaction, String, Double) -> Unit
+    onUpdateTransaction: (Transaction, String, Double) -> Unit,
+    onShareClick: () -> Unit
 ) {
 
     var groupMode by remember { mutableStateOf(GroupMode.Date) }
@@ -280,6 +306,26 @@ fun ListScreenContent(
                         onClick = {
                             showMenu = false
                             sheetState = AddSheetState.Choosing
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "Share Data",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Share,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        },
+                        onClick = {
+                            showMenu = false
+                            onShareClick()
                         }
                     )
                 }
@@ -614,5 +660,123 @@ fun ListScreenPreview() {
         onUpdateCategoryTitle = {},
         onDeleteTransaction = {},
         onUpdateTransaction = {} as (Transaction,String, Double) -> Unit,
+        onShareClick = {}
     )
+}
+
+private suspend fun generateAndSharePdf(
+    context: Context,
+    categoryName: String,
+    transactions: List<Transaction>
+) {
+    withContext(Dispatchers.IO) {
+        try {
+            val pdfDocument = PdfDocument()
+            val paint = Paint()
+            val titlePaint = Paint().apply {
+                textSize = 24f
+                isFakeBoldText = true
+            }
+            val headerPaint = Paint().apply {
+                textSize = 14f
+                isFakeBoldText = true
+            }
+            val bodyPaint = Paint().apply {
+                textSize = 12f
+            }
+
+            val pageWidth = 595
+            val pageHeight = 842
+
+            var pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
+            var page = pdfDocument.startPage(pageInfo)
+            var canvas = page.canvas
+
+            var y = 50f
+            val startX = 40f
+            val endX = pageWidth - 40f
+            val contentWidth = endX - startX
+
+            titlePaint.textAlign = Paint.Align.CENTER
+            canvas.drawText("Category: ${categoryName.toHeadlineCase()}", pageWidth / 2f, y, titlePaint)
+            y += 20f
+            titlePaint.textSize = 12f
+            titlePaint.isFakeBoldText = false
+            canvas.drawText("Generated by Listify on ${
+                SimpleDateFormat(
+                    "dd MMM yyyy",
+                    Locale.getDefault()
+                ).format(Date())}", pageWidth / 2f, y, titlePaint as android.graphics.Paint
+            )
+            y += 30f
+
+            headerPaint.textAlign = Paint.Align.LEFT
+            canvas.drawText("Title", startX, y, headerPaint)
+            canvas.drawText("Amount", startX + contentWidth * 0.60f, y, headerPaint)
+            canvas.drawText("Date", startX + contentWidth * 0.80f, y, headerPaint)
+            y += 5f
+            canvas.drawLine(startX, y, endX, y, paint)
+            y += 20f
+
+            val totalAmount = transactions.sumOf { it.amount }
+            val dateFormat = SimpleDateFormat("dd MMM", Locale.getDefault())
+
+            for (transaction in transactions.sortedByDescending { it.updatedAt }) {
+                if (y > pageHeight - 80) {
+                    pdfDocument.finishPage(page)
+                    pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pdfDocument.pages.size + 1).create()
+                    page = pdfDocument.startPage(pageInfo)
+                    canvas = page.canvas
+                    y = 50f
+                }
+
+                bodyPaint.textAlign = Paint.Align.LEFT
+
+                val title = if (transaction.title.length > 20) "${transaction.title.take(20)}..." else transaction.title
+                canvas.drawText(title, startX, y, bodyPaint)
+
+                canvas.drawText("₹%.2f".format(transaction.amount), startX + contentWidth * 0.60f, y, bodyPaint)
+                canvas.drawText(dateFormat.format(Date(transaction.updatedAt)), startX + contentWidth * 0.80f, y, bodyPaint)
+
+                y += 25f
+            }
+
+            y += 10f
+            canvas.drawLine(startX, y, endX, y, paint)
+            y += 20f
+            headerPaint.textAlign = Paint.Align.LEFT
+            canvas.drawText("Total Spent:", startX, y, headerPaint)
+            bodyPaint.isFakeBoldText = true
+            bodyPaint.textAlign = Paint.Align.LEFT
+            canvas.drawText("₹%.2f".format(totalAmount), startX + contentWidth * 0.60f, y, bodyPaint)
+
+            pdfDocument.finishPage(page)
+
+            val fileName = "Listify_${categoryName.replace(" ", "_")}_${System.currentTimeMillis()}.pdf"
+            val cacheDir = context.cacheDir
+            val file = File(cacheDir, fileName)
+            val fos = FileOutputStream(file)
+            pdfDocument.writeTo(fos)
+            pdfDocument.close()
+            fos.close()
+
+            val uri: Uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            withContext(Dispatchers.Main) {
+                context.startActivity(Intent.createChooser(shareIntent, "Share Transaction List"))
+            }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }
