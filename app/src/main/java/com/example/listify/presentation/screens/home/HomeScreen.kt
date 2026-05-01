@@ -15,6 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.AccountTree
 import androidx.compose.material.icons.rounded.AddCard
@@ -44,6 +47,7 @@ import com.example.listify.presentation.screens.composables.sheets.SelectCategor
 import com.example.listify.presentation.screens.composables.utils.PointedDivider
 import com.example.listify.presentation.screens.composables.sheets.SingleFieldSheet
 import com.example.listify.presentation.screens.utils.AddSheetState
+import com.example.listify.ui.theme.ListifyTypography
 
 @Composable
 fun HomeScreen(
@@ -102,100 +106,109 @@ fun HomeScreenContent(
                 .background(Color(0xFFF8F9FA))
                 .statusBarsPadding()
         ) {
-            Card(
+            Box(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
-                colors = cardColors(containerColor = colorScheme.primary),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                contentAlignment = Alignment.BottomCenter // Aligns children to the bottom center of the Box
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 28.dp)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+                    colors = cardColors(containerColor = colorScheme.primary),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Listify",
-                                color = colorScheme.onPrimary.copy(alpha = 0.65f),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = "Pencil it in",
-                                color = colorScheme.onPrimary,
-                                style = MaterialTheme.typography.displaySmall.copy(
-                                    fontWeight = FontWeight.ExtraBold
-                                )
-                            )
-                        }
-                        IconButton(onClick = { onNotificationClick() }) {
-                            Icon(
-                                imageVector =  if (activePrompt != null) Icons.Rounded.NotificationsActive else Icons.Rounded.Notifications,
-                                contentDescription = "Notifications",
-                                tint = colorScheme.onPrimary
-                            )
-                        }
-
-                        IconButton(onClick = { /* TODO: Profile action */ }) {
-                            Icon(
-                                imageVector = Icons.Rounded.AccountCircle,
-                                contentDescription = "Profile",
-                                tint = colorScheme.onPrimary
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        onClick = { sheetState = AddSheetState.Choosing },
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colorScheme.onPrimary,
-                            contentColor = colorScheme.primary
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                            .padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 40.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AddCard,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Add to the Book",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        HeaderStat(
-                            modifier = Modifier.weight(1f),
-                            label = "Clusters",
-                            value = data.clusteredSections.size.toString()
-                        )
-                        HeaderStat(
-                            modifier = Modifier.weight(1f),
-                            label = "Categories",
-                            value = totalCategories.toString()
-                        )
-                        HeaderStat(
-                            modifier = Modifier.weight(1f),
-                            label = "General",
-                            value = data.generalCategories.size.toString()
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Listify",
+                                    color = colorScheme.onPrimary,
+                                    style = MaterialTheme.typography.displayMedium
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "Pencil it in",
+                                    color = colorScheme.onPrimary.copy(alpha = 0.65f),
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                            IconButton(onClick = { onNotificationClick() }) {
+                                Icon(
+                                    imageVector = if (activePrompt != null) Icons.Rounded.NotificationsActive else Icons.Rounded.Notifications,
+                                    contentDescription = "Notifications",
+                                    tint = colorScheme.onPrimary
+                                )
+                            }
+
+                            IconButton(onClick = { /* TODO: Profile action */ }) {
+                                Icon(
+                                    imageVector = Icons.Rounded.AccountCircle,
+                                    contentDescription = "Profile",
+                                    tint = colorScheme.onPrimary
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            HeaderStat(
+                                modifier = Modifier.weight(1f),
+                                label = "Clusters",
+                                value = data.clusteredSections.size.toString(),
+                                icon = Icons.Outlined.Layers
+                            )
+                            HeaderStat(
+                                modifier = Modifier.weight(1f),
+                                label = "Categories",
+                                value = totalCategories.toString(),
+                                icon = Icons.Outlined.Category
+                            )
+                            HeaderStat(
+                                modifier = Modifier.weight(1f),
+                                label = "General",
+                                value = data.generalCategories.size.toString(),
+                                icon = Icons.Outlined.GridView
+                            )
+                        }
                     }
                 }
+                Button(
+                    onClick = { sheetState = AddSheetState.Choosing },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .height(56.dp)
+                        .offset(y = 28.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorScheme.onPrimary,
+                        contentColor = colorScheme.primary
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.AddCard,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Add to the Book",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
+            Spacer(modifier = Modifier.height(40.dp))
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()

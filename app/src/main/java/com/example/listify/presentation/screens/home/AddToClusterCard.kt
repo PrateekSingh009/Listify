@@ -17,34 +17,30 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun AddToClusterCard(onClick: () -> Unit) {
     Card(
         onClick = onClick,
-        modifier = Modifier.size(width = 86.dp, height = 90.dp),
+        modifier = Modifier.size(width = 88.dp, height = 92.dp),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-        ),
-        elevation = CardDefaults.cardElevation(0.dp),
-        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.20f))
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Surface(
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                 shape = CircleShape,
-                modifier = Modifier.size(34.dp)
+                modifier = Modifier.size(38.dp)
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Add,
-                    contentDescription = "Add to cluster",
-                    modifier = Modifier.padding(7.dp),
-                    tint = MaterialTheme.colorScheme.onPrimary
+                    contentDescription = "Add",
+                    modifier = Modifier.padding(8.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }

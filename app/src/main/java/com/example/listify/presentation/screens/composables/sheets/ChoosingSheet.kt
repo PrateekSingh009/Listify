@@ -79,11 +79,11 @@ fun ChoosingSheet(
                     Icon(
                         secondIcon,
                         null,
-                        tint = MaterialTheme.colorScheme.secondary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
                     )
                 },
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
                 title = secondChoiceTitle,
                 subtitle = secondChoiceSubtitle,
                 isSelected = selectedChoice == 2,
