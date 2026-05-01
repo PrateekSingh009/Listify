@@ -65,6 +65,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import android.graphics.Paint
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material.icons.filled.AddCircleOutline
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -93,7 +100,6 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
 
 @Composable
 fun ListScreen(
@@ -202,230 +208,161 @@ fun ListScreenContent(
         editingTitle = ""
     }
 
+
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary)
+            .background(Color.White)
             .statusBarsPadding()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
-            }
-            Text(
-                text = selectedGroup.title.toHeadlineCase(),
-                modifier =  Modifier.padding(start = 12.dp).weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = Color.White,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            IconButton(onClick = {
-                editingTitle = selectedGroup.title
-                sheetState = AddSheetState.EditingCategory(selectedGroup)
-            }) {
-                Icon(
-                    imageVector = Icons.Rounded.Edit,
-                    contentDescription = "Edit Category",
-                    tint = Color.White,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            IconButton(onClick = { showDeleteSheet = true }) {
-                Icon(
-                    imageVector = Icons.Filled.Delete,
-                    contentDescription = "Delete Category",
-                    tint = Color.White.copy(alpha = 0.85f)
-                )
-            }
-
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreVert,
-                        contentDescription = "More Options",
-                        tint = Color.White
-                    )
-                }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false },
-                    modifier = Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
-                ) {
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                if (hasTotalPlanned) "Remove Total Expense" else "Add Total Expense",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Filled.LibraryAdd,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        },
-                        onClick = {
-                            showMenu = false
-                            if (hasTotalPlanned) {
-                                onClearTotalPlanned()
-                            } else {
-                                showTotalExpenseSheet = true
-                            }
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "View Mode",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Filled.GridView,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        },
-                        onClick = {
-                            showMenu = false
-                            sheetState = AddSheetState.Choosing
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "Share Data",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Filled.Share,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        },
-                        onClick = {
-                            showMenu = false
-                            onShareClick()
-                        }
-                    )
-                }
-            }
-        }
-        Column(
-            modifier = Modifier
-                .padding(vertical = 8.dp, horizontal = 20.dp)
-                .background(MaterialTheme.colorScheme.primary)
-        ) {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                    .padding(horizontal = 8.dp, vertical = 8.dp)
             ) {
-                Column {
-                    Text(
-                        text = "Spent",
-                        color = Color.White.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    Text(
-                        "₹${totalSpend.toInt()}",
-                        color = Color.White,
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-                if (todaySpend > 0) {
-                    Surface(
-                        color = Color.White.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.align(Alignment.Top)
-                    ) {
-                        Text(
-                            text = "Today: ₹${todaySpend.toInt()}",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            if (hasTotalPlanned) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    HeaderStat(
-                        modifier = Modifier.weight(1f),
-                        label = "Limit",
-                        value = "₹${selectedGroup.totalPlanned.toInt()}"
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                    Text(
+                        text = selectedGroup.title.toHeadlineCase(),
+                        modifier =  Modifier.padding(start = 12.dp).weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
                     )
-                    HeaderStat(
-                        modifier = Modifier.weight(1f),
-                        label = if (remainingExpense.toInt() >= 0) "Remaining" else "Over-Limit",
-                        value = remainingExpense.toInt().let{ if (it >= 0)  "₹${it}" else "₹${it*-1}"}
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-            }
 
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                tonalElevation = 8.dp,
-                shadowElevation = 16.dp,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Button(
-                    onClick = { showAddTransactionSheet = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .align(Alignment.CenterHorizontally),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2C3857))
-                ) {
-                    Icon(
-                        Icons.Filled.AddCard,
-                        null,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text("Add Expense", fontWeight = FontWeight.Bold)
+                    IconButton(onClick = {
+                        editingTitle = selectedGroup.title
+                        sheetState = AddSheetState.EditingCategory(selectedGroup)
+                    }) {
+                        Icon(
+                            imageVector = Icons.Rounded.Edit,
+                            contentDescription = "Edit Category",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    IconButton(onClick = { showDeleteSheet = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Delete Category",
+                            tint = Color.White.copy(alpha = 0.85f)
+                        )
+                    }
+
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = "More Options",
+                                tint = Color.White
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        if (hasTotalPlanned) "Remove Total Expense" else "Add Total Expense",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Filled.LibraryAdd,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    if (hasTotalPlanned) {
+                                        onClearTotalPlanned()
+                                    } else {
+                                        showTotalExpenseSheet = true
+                                    }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "View Mode",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Filled.GridView,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    sheetState = AddSheetState.Choosing
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "Share Data",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Filled.Share,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onShareClick()
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
-        Spacer(Modifier.padding(top = 4.dp))
+        HeaderBar(
+            title = selectedGroup.title,
+            totalSpend = totalSpend,
+            todaySpend = todaySpend,
+            totalPlanned = selectedGroup.totalPlanned,
+            onAddExpenseClick = { showAddTransactionSheet = true }
+        )
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(0.dp)
+                .background(Color(0xFFF2EDE4))
                 .navigationBarsPadding(),
             colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F7F7)),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
