@@ -208,8 +208,6 @@ fun ListScreenContent(
         editingTitle = ""
     }
 
-
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -217,7 +215,7 @@ fun ListScreenContent(
             .statusBarsPadding()
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().background(Color(0xFFF2EDE4)),
             shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
             elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)

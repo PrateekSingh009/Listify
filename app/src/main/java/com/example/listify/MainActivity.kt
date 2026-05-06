@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.example.listify.presentation.navigation.NavGraph
 import com.example.listify.ui.theme.ListifyTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -30,9 +31,28 @@ class MainActivity : ComponentActivity() {
 
                 SideEffect {
                     val window = (view.context as Activity).window
+
+                    // Enable Edge-to-Edge (Modern way)
+                    enableEdgeToEdge(
+                        statusBarStyle = if (darkTheme) {
+                            SystemBarStyle.dark(scrim = primaryBarColor)
+                        } else {
+                            SystemBarStyle.light(scrim = primaryBarColor, darkScrim = primaryBarColor)
+                        },
+                        navigationBarStyle = if (darkTheme) {
+                            SystemBarStyle.dark(scrim = primaryBarColor)
+                        } else {
+                            SystemBarStyle.light(scrim = primaryBarColor, darkScrim = primaryBarColor)
+                        }
+                    )
+
+                    // Optional: Force status bar color if needed
                     window.statusBarColor = primaryBarColor
-                    window.navigationBarColor = primaryBarColor
-                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+
+                    // Control light/dark icons
+                    val controller = WindowInsetsControllerCompat(window, window.decorView)
+                    controller.isAppearanceLightStatusBars = !darkTheme
+                    controller.isAppearanceLightNavigationBars = !darkTheme
                 }
                 NavGraph()
             }

@@ -37,6 +37,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.listify.domain.model.DetectedPayment
 import com.example.listify.domain.model.HomeScreenData
 import com.example.listify.presentation.screens.composables.sheets.AddClusterSheet
@@ -55,6 +58,20 @@ fun HomeScreen(
     onListItemClick: (Long) -> Unit,
     onNotificationClick: () -> Unit
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                homeViewModel.refreshActivePrompt()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     val homeScreenData by homeViewModel.homeScreenData.collectAsState()
 
     val activePrompt by homeViewModel.activePrompt.collectAsState()

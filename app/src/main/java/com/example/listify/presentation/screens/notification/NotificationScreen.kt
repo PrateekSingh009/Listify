@@ -42,6 +42,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.listify.domain.model.DetectedPayment
 import com.example.listify.domain.model.HomeScreenData
 import com.example.listify.presentation.screens.composables.AutoDismissInfoBanner
+import com.example.listify.presentation.screens.composables.sheets.DeleteConfirmationSheet
 import com.example.listify.presentation.screens.composables.sheets.SelectCategorySheet
 import java.util.concurrent.TimeUnit
 
@@ -59,7 +60,8 @@ fun NotificationScreen(
         processedPayments = processed,
         homeScreenData = homeScreenData,
         onBackClick = onBackClick,
-        onAddPayment = viewModel::addPaymentToCategory
+        onAddPayment = viewModel::addPaymentToCategory,
+        onDeleteClick = viewModel::deleteDetectedPayment
     )
 }
 
@@ -70,9 +72,13 @@ fun NotificationScreenContent(
     processedPayments: List<DetectedPayment>,
     homeScreenData: HomeScreenData,
     onBackClick: () -> Unit,
-    onAddPayment: (DetectedPayment, Long, String, Double) -> Unit
+    onAddPayment: (DetectedPayment, Long, String, Double) -> Unit,
+    onDeleteClick: (DetectedPayment) -> Unit
 ) {
     var showSelectSheet by remember { mutableStateOf<DetectedPayment?>(null) }
+    var paymentToDelete by remember { mutableStateOf<DetectedPayment?>(null) }
+
+    var deleteModePaymentId by remember { mutableStateOf<Long?>(null) }
 
     Column(
         modifier = Modifier
@@ -156,7 +162,12 @@ fun NotificationScreenContent(
                         payment = payment,
                         isProcessed = false,
                         daysRemaining = daysRemaining.toInt(),
-                        onAddClick = { showSelectSheet = payment }
+                        onAddClick = { showSelectSheet = payment },
+                        onDeleteClick = {
+                            deleteModePaymentId = payment.id
+                            paymentToDelete = payment
+                        },
+                        isDeleteModeActive = deleteModePaymentId == payment.id
                     )
                     Spacer(Modifier.height(8.dp))
                 }
@@ -200,7 +211,12 @@ fun NotificationScreenContent(
                         payment = payment,
                         isProcessed = true,
                         daysRemaining = 0,
-                        onAddClick = {}
+                        onAddClick = {},
+                        onDeleteClick = {
+                            deleteModePaymentId = payment.id
+                            paymentToDelete = payment
+                        },
+                        isDeleteModeActive = deleteModePaymentId == payment.id
                     )
                     Spacer(Modifier.height(8.dp))
                 }
@@ -230,6 +246,22 @@ fun NotificationScreenContent(
                 }
             }
         }
+    }
+
+    if (paymentToDelete != null) {
+        DeleteConfirmationSheet(
+            onDismiss = {
+                paymentToDelete = null
+                deleteModePaymentId = null
+            },
+            onConfirm = {
+                onDeleteClick(paymentToDelete!!)
+                paymentToDelete = null
+                deleteModePaymentId = null
+            },
+            title = "Payment",
+            groupName = "${paymentToDelete!!.merchant} (₹${paymentToDelete!!.amount.toInt()})"
+        )
     }
 
     showSelectSheet?.let { payment ->

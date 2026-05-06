@@ -72,6 +72,10 @@ class HomeViewModel @Inject constructor(
         _activePrompt.value = null
     }
 
+    fun refreshActivePrompt() {
+        _activePrompt.value = null
+    }
+
     fun addCategory(title: String, clusterId: Long? = null) {
         viewModelScope.launch {
             addCategoryUseCase(title, clusterId)

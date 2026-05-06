@@ -66,6 +66,12 @@ class NotificationViewModel @Inject constructor(
         }
     }
 
+    fun deleteDetectedPayment(payment: DetectedPayment) {
+        viewModelScope.launch {
+            deleteDetectedPaymentUseCase(payment)
+        }
+    }
+
     fun addPaymentToCategory(payment: DetectedPayment, categoryId: Long, title: String, amount: Double) {
         viewModelScope.launch {
             addTransactionToCategoryUseCase(title, amount, categoryId)

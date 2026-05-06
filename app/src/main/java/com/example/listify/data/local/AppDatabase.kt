@@ -18,7 +18,7 @@ import com.example.listify.data.local.entity.TransactionEntity
             DetectedPaymentEntity::class
         ],
     version = 5,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): Dao

@@ -23,7 +23,7 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "listify.db")
-            .fallbackToDestructiveMigration()
+//            .fallbackToDestructiveMigration()
             .build()
 
 
