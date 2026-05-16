@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.example.listify.presentation.screens.home.HomeScreen
 import com.example.listify.presentation.screens.list.ListScreen
 import com.example.listify.presentation.screens.notification.NotificationScreen
+import com.example.listify.presentation.screens.receiptscanner.ReceiptScanScreen
 
 @Composable
 fun NavGraph() {
@@ -17,6 +18,7 @@ fun NavGraph() {
     NavHost(navController = navController,startDestination = "home") {
         composable("home") {
             HomeScreen(
+                onReceiptScannerClick = { navController.navigate("receipt_scan") },
                 onListItemClick = { categoryId -> navController.navigate("list/$categoryId") },
                 onNotificationClick = { navController.navigate("notifications") }
             )
@@ -36,6 +38,11 @@ fun NavGraph() {
         ) { backStackEntry ->
 //            val id = backStackEntry.arguments?.getLong("groupId") ?: return@composable
             ListScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable("receipt_scan") {
+            ReceiptScanScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }

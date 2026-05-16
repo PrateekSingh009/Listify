@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.AccountTree
 import androidx.compose.material.icons.rounded.AddCard
 import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.DocumentScanner
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Warning
@@ -55,6 +56,7 @@ import com.example.listify.ui.theme.ListifyTypography
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel = hiltViewModel(),
+    onReceiptScannerClick : () -> Unit,
     onListItemClick: (Long) -> Unit,
     onNotificationClick: () -> Unit
 ) {
@@ -81,6 +83,7 @@ fun HomeScreen(
         onClick = onListItemClick,
         activePrompt = activePrompt,
         onNotificationClick = onNotificationClick,
+        onReceiptScannerClick  = onReceiptScannerClick,
         onAddCategory = homeViewModel::addCategory,
         onAddCluster = homeViewModel::addCluster,
         onIgnorePrompt = homeViewModel::ignorePrompt,
@@ -95,6 +98,7 @@ fun HomeScreenContent(
     onClick: (Long) -> Unit,
     activePrompt: DetectedPayment?,
     onNotificationClick : () -> Unit,
+    onReceiptScannerClick : () -> Unit,
     onAddCategory: (String, Long?) -> Unit,
     onAddCluster: (String, String) -> Unit,
     onIgnorePrompt: () -> Unit,
@@ -155,6 +159,15 @@ fun HomeScreenContent(
                                     style = MaterialTheme.typography.titleMedium
                                 )
                             }
+                            IconButton(onClick = { onReceiptScannerClick() }) {
+                                Icon(
+                                    imageVector = Icons.Rounded.DocumentScanner,
+                                    contentDescription = "Scan Document",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
                             IconButton(onClick = { onNotificationClick() }) {
                                 Icon(
                                     imageVector = if (activePrompt != null) Icons.Rounded.NotificationsActive else Icons.Rounded.Notifications,
@@ -162,14 +175,13 @@ fun HomeScreenContent(
                                     tint = colorScheme.onPrimary
                                 )
                             }
-
-                            IconButton(onClick = { /* TODO: Profile action */ }) {
-                                Icon(
-                                    imageVector = Icons.Rounded.AccountCircle,
-                                    contentDescription = "Profile",
-                                    tint = colorScheme.onPrimary
-                                )
-                            }
+//                            IconButton(onClick = { /* TODO: Profile action */ }) {
+//                                Icon(
+//                                    imageVector = Icons.Rounded.AccountCircle,
+//                                    contentDescription = "Profile",
+//                                    tint = colorScheme.onPrimary
+//                                )
+//                            }
                         }
                         Spacer(Modifier.height(12.dp))
 

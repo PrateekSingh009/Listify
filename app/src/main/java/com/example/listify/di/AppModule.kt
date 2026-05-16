@@ -5,6 +5,8 @@ import androidx.room.Room
 import com.example.listify.data.local.AppDatabase
 import com.example.listify.data.local.dao.Dao
 import com.example.listify.data.local.dao.DetectedPaymentDao
+import com.example.listify.data.receipt.GeminiReceiptParser
+import com.example.listify.data.receipt.OcrEngine
 import com.example.listify.data.repository.DataRepositoryImpl
 import com.example.listify.domain.repository.DataRepository
 import com.example.listify.domain.usecase.*
@@ -86,4 +88,10 @@ object AppModule {
     @Provides
     fun provideGetProcessedDetectedPaymentsUseCase(repository: DataRepository) =
         GetProcessedDetectedPaymentsUseCase(repository)
+
+    @Provides
+    fun provideScanReceiptUseCase(
+        ocrEngine: OcrEngine,
+        geminiParser: GeminiReceiptParser
+    ) = ScannedReceiptUseCase(ocrEngine, geminiParser)
 }

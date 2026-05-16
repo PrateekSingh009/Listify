@@ -4,17 +4,18 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
     namespace = "com.example.listify"
-    compileSdk = 35
+    compileSdk = 34
 
 
     defaultConfig {
         applicationId = "com.example.listify"
-        minSdk = 26
-        targetSdk = 35
+        minSdk = 31
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -55,6 +56,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.firebase.ai)
 //    implementation(libs.androidx.navigation.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -66,9 +68,15 @@ dependencies {
 
     implementation(libs.androidx.compose.foundation)
 
+    implementation(platform(libs.firebase.bom))
+//    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    implementation("com.google.firebase:firebase-analytics")
     // Compose
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.7.5")
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("com.google.ai.edge.aicore:aicore:0.0.1-exp01")
+    implementation("com.google.ai.client.generativeai:generativeai:0.8.0")  // Most stable right now
     implementation("io.coil-kt:coil-compose:2.4.0")
 
 
